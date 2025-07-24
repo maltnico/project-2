@@ -3,7 +3,6 @@ import {
   Mail, 
   Save, 
   TestTube, 
-  Shield, 
   AlertTriangle, 
   CheckCircle, 
   Eye, 
@@ -36,7 +35,7 @@ const VaultMailConfig: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [vaultConnected, setVaultConnected] = useState(false);
-  const [useVault, setUseVault] = useState(true);
+  const [useVault, setUseVault] = useState(false); // Forcer l'utilisation du stockage local
 
   useEffect(() => {
     loadConfiguration();
@@ -44,17 +43,10 @@ const VaultMailConfig: React.FC = () => {
   }, []);
 
   const checkVaultConnection = async () => {
-    try {
-      const isConnected = await mailService.testVaultConnection();
-      setVaultConnected(isConnected);
-      if (!isConnected) {
-        setUseVault(false);
-      }
-    } catch (error) {
-      console.error('Erreur test vault:', error);
-      setVaultConnected(false);
-      setUseVault(false);
-    }
+    // Forcer l'utilisation du stockage local
+    setVaultConnected(false);
+    setUseVault(false);
+    console.log('Mode stockage local forcé - configuration email sera sauvegardée localement');
   };
 
   const loadConfiguration = async () => {
@@ -62,16 +54,8 @@ const VaultMailConfig: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Essayer d'abord le vault si disponible
-      let loadedConfig = null;
-      if (vaultConnected) {
-        loadedConfig = await mailService.getConfigFromVault();
-      }
-
-      // Fallback sur localStorage
-      if (!loadedConfig) {
-        loadedConfig = mailService.getConfig();
-      }
+      // Charger directement depuis localStorage (stockage local)
+      const loadedConfig = mailService.getConfig();
 
       if (loadedConfig) {
         setConfig(loadedConfig);
@@ -101,15 +85,9 @@ const VaultMailConfig: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      if (useVault && vaultConnected) {
-        // Sauvegarder dans le vault
-        await mailService.saveConfigToVault(config);
-        setSuccess('Configuration sauvegardée dans le vault sécurisé');
-      } else {
-        // Sauvegarder localement
-        mailService.saveConfig(config);
-        setSuccess('Configuration sauvegardée localement');
-      }
+      // Sauvegarder uniquement en local (localStorage)
+      mailService.saveConfig(config);
+      setSuccess('✅ Configuration email sauvegardée localement avec succès');
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde');
@@ -124,12 +102,8 @@ const VaultMailConfig: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Sauvegarder temporairement la config pour le test
-      if (useVault && vaultConnected) {
-        await mailService.saveConfigToVault(config);
-      } else {
-        mailService.saveConfig(config);
-      }
+      // Sauvegarder temporairement la config pour le test (en local uniquement)
+      mailService.saveConfig(config);
 
       const result = await mailService.verifyConnection();
       
@@ -182,6 +156,22 @@ const VaultMailConfig: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Message d'information sur le stockage local */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <div className="flex items-start space-x-3">
+          <Lock className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">
+              📁 Mode Stockage Local Activé
+            </h3>
+            <p className="text-blue-800 text-sm leading-relaxed">
+              Votre configuration email sera enregistrée de manière sécurisée dans le stockage local de votre navigateur. 
+              Cette solution est parfaite pour un usage personnel et garantit que vos paramètres restent privés sur votre machine.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Header avec statut du vault */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -192,28 +182,16 @@ const VaultMailConfig: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Configuration Mail Sécurisée</h1>
               <p className="text-gray-600 mt-1">
-                Configurez votre serveur SMTP avec stockage sécurisé dans le vault
+                Configurez votre serveur SMTP pour l'envoi d'emails
               </p>
             </div>
           </div>
           
-          {/* Statut du vault */}
+          {/* Statut du stockage */}
           <div className="flex items-center space-x-4">
-            <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
-              vaultConnected ? 'bg-green-100 text-green-800 border border-green-200' : 
-              'bg-red-100 text-red-800 border border-red-200'
-            }`}>
-              {vaultConnected ? (
-                <>
-                  <Shield className="h-5 w-5" />
-                  <span className="font-medium">Vault connecté</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-5 w-5" />
-                  <span className="font-medium">Vault indisponible</span>
-                </>
-              )}
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-green-100 text-green-800 border border-green-200">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-medium">Stockage Local</span>
             </div>
           </div>
         </div>

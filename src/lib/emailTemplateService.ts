@@ -33,11 +33,11 @@ class EmailTemplateService {
   private templates: EmailTemplate[] = [];
   private isLoading = false;
   private lastLoaded = 0;
+  private isInitialized = false;
   private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    // Précharger les templates par défaut si aucun n'existe
-    this.initDefaultTemplates();
+    // L'initialisation se fera lors du premier appel à getTemplates()
   }
 
   // Initialiser les templates par défaut si aucun n'existe
@@ -51,15 +51,35 @@ class EmailTemplateService {
         return;
       }
       
-      const templates = await this.getTemplates();
+      // Vérifier si des templates existent déjà en DB
+      const { data: existingTemplates, error } = await supabase
+        .from('email_templates')
+        .select('name')
+        .eq('user_id', userData.user.id);
+      
+      if (error) {
+        console.error('Erreur lors de la vérification des templates existants:', error);
+        return;
+      }
       
       // Si aucun template n'existe, créer les templates par défaut
-      if (templates.length === 0) {
+      if (!existingTemplates || existingTemplates.length === 0) {
         console.log('Aucun template trouvé, initialisation des templates par défaut...');
         
         for (const template of defaultEmailTemplates) {
-          await this.saveTemplate(template);
+          const templateWithDefaults: EmailTemplate = {
+            ...template,
+            id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          await this.saveTemplate(templateWithDefaults);
         }
+        
+        this.isInitialized = true;
+      } else {
+        // Des templates existent déjà
+        this.isInitialized = true;
       }
     } catch (error) {
       console.error('Erreur lors de l\'initialisation des templates par défaut:', error);
@@ -93,6 +113,8 @@ class EmailTemplateService {
         subject: template.subject,
         content: template.content,
         category: template.category as 'tenant' | 'property' | 'financial' | 'administrative' | 'other',
+        type: template.type || 'email',
+        documentTemplateId: template.document_template_id,
         createdAt: new Date(template.created_at),
         updatedAt: new Date(template.updated_at)
       }));
@@ -146,6 +168,18 @@ class EmailTemplateService {
       const templates = await this.getTemplatesFromDB();
       this.templates = templates;
       this.lastLoaded = now;
+      
+      // Initialiser les templates par défaut si c'est la première fois et qu'il n'y en a aucun
+      if (!this.isInitialized) {
+        await this.initDefaultTemplates();
+        // Recharger après l'initialisation si des templates ont été créés
+        if (this.isInitialized && templates.length === 0) {
+          const newTemplates = await this.getTemplatesFromDB();
+          this.templates = newTemplates;
+          return newTemplates;
+        }
+      }
+      
       return templates;
     } catch (error) {
       console.error('Erreur lors de la récupération des templates:', error);
@@ -182,7 +216,8 @@ class EmailTemplateService {
             subject: template.subject,
             content: template.content,
             category: template.category,
-            type: template.type
+            type: template.type,
+            document_template_id: template.documentTemplateId
           })
           .select()
           .single();
@@ -212,6 +247,7 @@ class EmailTemplateService {
             content: template.content,
             category: template.category,
             type: template.type,
+            document_template_id: template.documentTemplateId,
             updated_at: now.toISOString()
           })
           .eq('id', template.id);
@@ -592,8 +628,3 @@ class EmailTemplateService {
 }
 
 export const emailTemplateService = new EmailTemplateService();
-
-// Précharger les templates au démarrage de l'application
-emailTemplateService.getTemplates().catch(err => {
-  console.warn('Erreur lors du préchargement des templates:', err);
-});

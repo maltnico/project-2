@@ -394,7 +394,103 @@ class DocumentStorage {
       const documentsJson = localStorage.getItem(STORAGE_KEY);
       
       if (!documentsJson) {
-        return Promise.resolve([]);
+        // Create demo documents if none exist
+        const demoDocuments: GeneratedDocument[] = [
+          {
+            id: 'doc_1',
+            templateId: 'lease-contract',
+            name: 'Contrat de bail - Appartement Bastille',
+            type: 'lease',
+            status: 'received',
+            propertyId: '1',
+            tenantId: '1',
+            userId: 'current-user',
+            data: {},
+            content: '<div class="document-header"><h1>CONTRAT DE BAIL</h1></div>',
+            signatures: [
+              {
+                id: 'sig_1',
+                signerName: 'Marie Martin',
+                signerEmail: 'marie.martin@email.com',
+                signerRole: 'tenant',
+                signedAt: new Date('2025-07-20')
+              }
+            ],
+            createdAt: new Date('2025-07-15'),
+            updatedAt: new Date('2025-07-20'),
+            signedAt: new Date('2025-07-20'),
+            metadata: {
+              version: '1.0',
+              generatedBy: 'EasyBail Document Generator',
+              legalFramework: 'Loi du 6 juillet 1989, Loi ALUR'
+            }
+          },
+          {
+            id: 'doc_2',
+            templateId: 'inventory-report',
+            name: 'État des lieux d\'entrée - Appartement Bastille',
+            type: 'inventory',
+            status: 'received',
+            propertyId: '1',
+            tenantId: '1',
+            userId: 'current-user',
+            data: {},
+            content: '<div class="document-header"><h1>ÉTAT DES LIEUX</h1></div>',
+            signatures: [],
+            createdAt: new Date('2025-07-18'),
+            updatedAt: new Date('2025-07-18'),
+            signedAt: new Date('2025-07-18'),
+            metadata: {
+              version: '1.0',
+              generatedBy: 'EasyBail Document Generator',
+              legalFramework: 'Loi du 6 juillet 1989, Décret n°2016-382'
+            }
+          },
+          {
+            id: 'doc_3',
+            templateId: 'rent-receipt',
+            name: 'Quittance Juillet 2025',
+            type: 'receipt',
+            status: 'draft',
+            propertyId: '1',
+            tenantId: '1',
+            userId: 'current-user',
+            data: {},
+            content: '<div class="document-header"><h1>QUITTANCE DE LOYER</h1></div>',
+            signatures: [],
+            createdAt: new Date('2025-07-23'),
+            updatedAt: new Date('2025-07-23'),
+            metadata: {
+              version: '1.0',
+              generatedBy: 'EasyBail Document Generator',
+              legalFramework: 'Article 21 de la loi du 6 juillet 1989'
+            }
+          },
+          {
+            id: 'doc_4',
+            templateId: 'rent-receipt',
+            name: 'Quittance Juin 2025',
+            type: 'receipt',
+            status: 'sent',
+            propertyId: '1',
+            tenantId: '1',
+            userId: 'current-user',
+            data: {},
+            content: '<div class="document-header"><h1>QUITTANCE DE LOYER</h1></div>',
+            signatures: [],
+            createdAt: new Date('2025-06-01'),
+            updatedAt: new Date('2025-06-05'),
+            metadata: {
+              version: '1.0',
+              generatedBy: 'EasyBail Document Generator',
+              legalFramework: 'Article 21 de la loi du 6 juillet 1989'
+            }
+          }
+        ];
+        
+        // Save demo documents to localStorage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(demoDocuments));
+        return Promise.resolve(demoDocuments);
       }
       
       const documents = JSON.parse(documentsJson);
@@ -592,7 +688,8 @@ class DocumentStorage {
         updated_at: new Date().toISOString()
       };
 
-      if (status === 'signed') {
+      // Note: 'signed' is not a valid DocumentStatus, but we handle signedAt separately
+      if (status === 'received') {
         updateData.signed_at = new Date().toISOString();
       }
 

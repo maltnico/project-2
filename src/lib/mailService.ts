@@ -60,10 +60,24 @@ class MailService {
 
   saveConfig(config: MailConfig): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+      // Valider la configuration avant de la sauvegarder
+      if (!config.host || !config.username || !config.from) {
+        throw new Error('Configuration incomplète: host, username et from sont requis');
+      }
+      
+      // Tenter la sauvegarde
+      const configJson = JSON.stringify(config);
+      localStorage.setItem(this.STORAGE_KEY, configJson);
+      
+      console.log('✅ Configuration mail sauvegardée avec succès');
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la configuration mail:', error);
-      throw error;
+      if (error instanceof Error) {
+        console.error('❌ Erreur lors de la sauvegarde de la configuration mail:', error.message);
+        throw new Error(`Échec de la sauvegarde: ${error.message}`);
+      } else {
+        console.error('❌ Erreur inconnue lors de la sauvegarde de la configuration mail:', error);
+        throw new Error('Erreur inconnue lors de la sauvegarde');
+      }
     }
   }
 
