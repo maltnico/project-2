@@ -27,63 +27,63 @@ export const useTasks = (): UseTasksReturn => {
       id: '1',
       title: 'Révision loyer annuelle',
       description: 'Appliquer l\'indice IRL pour la révision du loyer',
-      dueDate: new Date('2024-12-15'),
+      dueDate: new Date('2025-08-15'),
       priority: 'high',
       status: 'pending',
       propertyId: '1',
       propertyName: 'Appartement Bastille',
       category: 'financial',
-      createdAt: new Date('2024-11-15'),
-      updatedAt: new Date('2024-11-15')
+      createdAt: new Date('2025-07-15'),
+      updatedAt: new Date('2025-07-15')
     },
     {
       id: '2',
       title: 'Visite Studio Montmartre',
       description: 'Visite avec potentiel locataire',
-      dueDate: new Date('2024-12-18'),
+      dueDate: new Date('2025-07-28'),
       priority: 'medium',
       status: 'pending',
       propertyId: '2',
       propertyName: 'Studio Montmartre',
       category: 'visit',
-      createdAt: new Date('2024-11-20'),
-      updatedAt: new Date('2024-11-20')
+      createdAt: new Date('2025-07-20'),
+      updatedAt: new Date('2025-07-20')
     },
     {
       id: '3',
       title: 'Entretien chaudière',
       description: 'Maintenance annuelle de la chaudière',
-      dueDate: new Date('2024-12-20'),
+      dueDate: new Date('2025-08-20'),
       priority: 'low',
       status: 'pending',
       propertyId: '3',
       propertyName: 'Maison Vincennes',
       category: 'maintenance',
-      createdAt: new Date('2024-11-10'),
-      updatedAt: new Date('2024-11-10')
+      createdAt: new Date('2025-07-10'),
+      updatedAt: new Date('2025-07-10')
     },
     {
       id: '4',
       title: 'Renouvellement assurance PNO',
       description: 'Renouveler le contrat d\'assurance propriétaire non occupant',
-      dueDate: new Date('2025-01-15'),
+      dueDate: new Date('2025-09-15'),
       priority: 'high',
       status: 'pending',
       category: 'administrative',
-      createdAt: new Date('2024-11-25'),
-      updatedAt: new Date('2024-11-25')
+      createdAt: new Date('2025-07-22'),
+      updatedAt: new Date('2025-07-22')
     },
     {
       id: '5',
       title: 'Paiement taxe foncière',
       description: 'Payer la taxe foncière pour l\'année en cours',
-      dueDate: new Date('2024-11-15'),
+      dueDate: new Date('2025-07-15'),
       priority: 'high',
       status: 'completed',
-      completedAt: new Date('2024-11-14'),
+      completedAt: new Date('2025-07-14'),
       category: 'financial',
-      createdAt: new Date('2024-10-15'),
-      updatedAt: new Date('2024-11-14')
+      createdAt: new Date('2025-07-01'),
+      updatedAt: new Date('2025-07-14')
     }
   ];
 
@@ -186,7 +186,7 @@ export const useTasks = (): UseTasksReturn => {
         task.id === id 
           ? { 
               ...task, 
-              status: 'completed', 
+              status: 'completed' as const, 
               completedAt: new Date(),
               updatedAt: new Date() 
             }
