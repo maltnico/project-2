@@ -26,6 +26,7 @@ export interface EmailData {
     filename: string;
     content: string;
     contentType: string;
+    encoding?: string;
   }>;
 }
 
@@ -479,8 +480,7 @@ class EmailTemplateService {
       
       return {
         subject: processedSubject,
-        content: processedContent,
-        documentTemplateId: template.documentTemplateId
+        content: processedContent
       };
     } catch (error) {
       console.error(`Erreur lors du traitement du template ${templateId}:`, error);
@@ -504,6 +504,9 @@ class EmailTemplateService {
       }>;
     }
   ): Promise<{ success: boolean; error?: string }> {
+    let template: EmailTemplate | null = null;
+    let processed: { subject: string; content: string } | null = null;
+    
     try {
       // Vérifier si le service mail est configuré
       if (!mailService.isConfigured()) {
@@ -513,8 +516,17 @@ class EmailTemplateService {
         };
       }
       
+      // Récupérer le template pour accéder à ses propriétés
+      template = await this.getTemplateById(templateId);
+      if (!template) {
+        return { 
+          success: false, 
+          error: 'Template non trouvé' 
+        };
+      }
+      
       // Traiter le template
-      const processed = this.processTemplate(templateId, data);
+      processed = this.processTemplate(templateId, data);
       if (!processed) {
         return { 
           success: false, 
@@ -526,14 +538,19 @@ class EmailTemplateService {
       let htmlContent = processed.content;
       
       // Générer le document PDF si un template de document est associé
-      let attachments = options?.attachments || [];
-      if (processed.documentTemplateId) {
+      let attachments: Array<{
+        filename: string;
+        content: string;
+        contentType: string;
+        encoding?: string;
+      }> = options?.attachments || [];
+      if (template.documentTemplateId) {
         try {
           // Importer le service de stockage de documents
           const { documentStorage } = await import('./documentStorage');
           
           // Récupérer le document
-          const document = await documentStorage.getDocument(processed.documentTemplateId);
+          const document = await documentStorage.getDocument(template.documentTemplateId);
           
           if (document) {
             // Utiliser le PDF pré-généré s'il existe
@@ -544,7 +561,8 @@ class EmailTemplateService {
               attachments.push({
                 filename: `${document.name}.pdf`,
                 content: pdfContent,
-                contentType: 'application/pdf'
+                contentType: 'application/pdf',
+                encoding: 'base64'
               });
               
               console.log(`Document PDF joint avec succès: ${document.name}.pdf`);
@@ -564,7 +582,10 @@ class EmailTemplateService {
         bcc: options?.bcc,
         subject: processed.subject,
         html: htmlContent,
-        attachments: attachments.length > 0 ? attachments : options?.attachments
+        attachments: attachments.map(att => ({
+          ...att,
+          encoding: att.encoding || 'base64'
+        }))
       });
       
       if (!result.success && result.error?.includes('mail n\'est pas configuré')) {
@@ -576,7 +597,10 @@ class EmailTemplateService {
           bcc: options?.bcc,
           subject: processed.subject,
           html: htmlContent,
-          attachments: attachments.length > 0 ? attachments : options?.attachments
+          attachments: attachments.map(att => ({
+            ...att,
+            encoding: att.encoding || 'base64'
+          }))
         });
       } else {
         return result;
@@ -591,9 +615,12 @@ class EmailTemplateService {
           to,
           cc: options?.cc,
           bcc: options?.bcc,
-          subject: processed?.subject || 'Email sans sujet',
-          html: processed?.content || 'Contenu non disponible',
-          attachments: options?.attachments
+          subject: template?.subject || 'Email sans sujet',
+          html: template?.content || 'Contenu non disponible',
+          attachments: (options?.attachments || []).map(att => ({
+            ...att,
+            encoding: 'base64'
+          }))
         });
       } catch (localError) {
         return { 
