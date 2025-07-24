@@ -11,20 +11,14 @@ import {
   Calendar,
   CheckCircle,
   Activity,
-  Clock,
-  Eye,
   BarChart3,
-  PieChart,
   Zap,
-  Filter,
-  Mail,
   RefreshCw
 } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { useActivities } from '../../hooks/useActivities';
 import { useProperties } from '../../hooks/useProperties';
-import { useNotifications } from '../../hooks/useNotifications';
 import { useFinances } from '../../hooks/useFinances';
 import { useTasks } from '../../hooks/useTasks';
 import { useAutomations } from '../../hooks/useAutomations';
@@ -44,10 +38,9 @@ ChartJS.register(
 const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) => {
   const { activities, stats, refreshActivities, loading: activitiesLoading } = useActivities({}, 7); // Récupérer les 7 dernières activités
   const { properties, loading: propertiesLoading } = useProperties();
-  const { notifications, unreadCount } = useNotifications();
   const { tasks, loading: tasksLoading } = useTasks();
-  const { flows, dashboardData, stats: financeStats, loading: financeLoading, refreshDashboard } = useFinances();
-  const { automations, isSchedulerActive, startScheduler, stopScheduler } = useAutomations();
+  const { dashboardData, loading: financeLoading, refreshDashboard } = useFinances();
+  const { automations } = useAutomations();
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'semester' | 'year'>('month');
   const [generatedDocuments, setGeneratedDocuments] = useState(0);
   const [documentsLoading, setDocumentsLoading] = useState(true);
@@ -72,8 +65,8 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
   }, []);
 
   const totalProperties = properties.length;
-  const occupiedProperties = properties.filter(p => p.status === 'occupied').length;
-  const totalRent = properties.reduce((sum, p) => p.status === 'occupied' ? sum + p.rent : sum, 0);
+  const occupiedProperties = properties.filter(p => p.status === 'rented').length;
+  const totalRent = properties.reduce((sum, p) => p.status === 'rented' ? sum + p.rent : sum, 0);
   const activeAutomations = automations.filter(a => a.active).length;
 
   const getActivityIcon = (type: string) => {
@@ -163,77 +156,93 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
     .slice(0, 3); // Limiter à 3 tâches
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
-        <p className="text-gray-600">Vue d'ensemble de votre portefeuille immobilier</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Enhanced Header with Statistics */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+              <BarChart3 className="h-8 w-8 text-white" />
+            </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Biens totaux</p>
-              <p className="text-3xl font-bold text-gray-900">{totalProperties}</p>
-              <p className="text-sm text-green-600 mt-1">
-                {occupiedProperties} occupés
+              <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+              <p className="text-gray-600 mt-1">
+                Vue d'ensemble de votre portefeuille immobilier
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Building className="h-6 w-6 text-blue-600" />
-            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => refreshDashboard()}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>Actualiser</span>
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Revenus mensuels</p>
-              <p className="text-3xl font-bold text-gray-900">{totalRent.toLocaleString()}€</p>
-              <p className="text-sm text-green-600 mt-1">
-                +5.2% vs mois dernier
-              </p>
+        {/* Main Statistics Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Biens totaux</p>
+                <p className="text-2xl font-bold text-blue-600">{totalProperties}</p>
+                <p className="text-xs text-green-600 mt-1">
+                  {occupiedProperties} occupés
+                </p>
+              </div>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Building className="h-5 w-5 text-blue-600" />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-green-600" />
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenus mensuels</p>
+                <p className="text-2xl font-bold text-green-600">{totalRent.toLocaleString()}€</p>
+                <p className="text-xs text-green-600 mt-1">
+                  +5.2% vs mois dernier
+                </p>
+              </div>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <DollarSign className="h-5 w-5 text-green-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Documents</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {documentsLoading ? '...' : generatedDocuments}
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Via le générateur
+                </p>
+              </div>
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <FileText className="h-5 w-5 text-orange-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Automatisations</p>
+                <p className="text-2xl font-bold text-purple-600">{activeAutomations}</p>
+                <p className="text-xs text-purple-600 mt-1">
+                  Actives
+                </p>
+              </div>
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Zap className="h-5 w-5 text-purple-600" />
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Documents générés</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {documentsLoading ? '...' : generatedDocuments}
-              </p>
-              <p className="text-sm text-orange-600 mt-1">
-                Via le générateur
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <FileText className="h-6 w-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Automatisations actives</p>
-              <p className="text-3xl font-bold text-gray-900">{activeAutomations}</p>
-              <p className="text-sm text-red-600 mt-1">
-                {activeAutomations > 0 ? 'En fonctionnement' : 'Aucune automatisation'}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Zap className="h-6 w-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-        
       </div>
       
       {/* Loading State */}

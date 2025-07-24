@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { 
@@ -9,11 +9,7 @@ import {
   CreditCard, 
   Database, 
   Mail, 
-  Phone, 
-  Building, 
   Save,
-  Eye,
-  EyeOff,
   Download,
   Upload,
   Trash2,
@@ -24,7 +20,6 @@ import {
   Sun,
   Smartphone,
   Lock,
-  Key,
   FileText,
   HelpCircle
 } from 'lucide-react';
@@ -88,7 +83,7 @@ const Settings = () => {
   });
 
   // Security settings
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings] = useState({
     twoFactorEnabled: false,
     sessionTimeout: '30',
     passwordLastChanged: new Date('2024-01-15'),
@@ -386,13 +381,13 @@ const Settings = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-lg font-semibold text-blue-900">Plan {user?.plan || 'Starter'}</h4>
+              <h4 className="text-lg font-semibold text-blue-900">Plan {profile?.plan || 'Starter'}</h4>
               <p className="text-blue-700">
-                {user?.subscription_status === 'trial' ? 'Période d\'essai' : 'Abonnement actif'}
+                {profile?.subscription_status === 'trial' ? 'Période d\'essai' : 'Abonnement actif'}
               </p>
-              {user?.trial_ends_at && (
+              {profile?.trial_ends_at && (
                 <p className="text-sm text-blue-600 mt-1">
-                  Expire le: {new Date(user.trial_ends_at).toLocaleDateString()}
+                  Expire le: {new Date(profile.trial_ends_at).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -696,10 +691,25 @@ const Settings = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Paramètres</h1>
-        <p className="text-gray-600">Gérez vos préférences et paramètres de compte</p>
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+              <SettingsIcon className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
+              <p className="text-gray-600 mt-1">
+                Gérez vos préférences et paramètres de compte
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-gray-200">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-sm text-gray-600">Compte actif</span>
+          </div>
+        </div>
       </div>
 
       {/* Message */}

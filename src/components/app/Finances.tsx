@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown, 
   Plus, 
-  Calendar,
   Download,
   Filter,
   PieChart,
@@ -14,27 +13,20 @@ import {
   Edit,
   Trash2,
   Eye,
-  ArrowRight,
-  ArrowLeft,
   X,
-  Save,
   AlertTriangle,
   CheckCircle,
-  Clock,
   Repeat,
   Tag,
-  Printer,
   FileDown,
-  CreditCard,
   Building,
   Users,
-  Zap,
   Settings,
   Loader2
 } from 'lucide-react';
 import { useFinances } from '../../hooks/useFinances';
 import { useProperties } from '../../hooks/useProperties';
-import { FinancialFlow, FinancialCategory } from '../../types/financial';
+import { FinancialFlow } from '../../types/financial';
 import FinancialFlowForm from './FinancialFlowForm';
 import FinancialDashboard from './FinancialDashboard';
 import FinancialReports from './FinancialReports';
@@ -53,7 +45,6 @@ const Finances = () => {
     createFlow,
     updateFlow,
     deleteFlow,
-    refreshData,
     refreshDashboard
   } = useFinances();
 
@@ -74,6 +65,34 @@ const Finances = () => {
   const [editingFlow, setEditingFlow] = useState<FinancialFlow | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<FinancialFlow | null>(null);
   const [showFlowDetails, setShowFlowDetails] = useState(false);
+
+  // Function to handle date range changes
+  const handleDateRangeChange = (period: 'month' | 'quarter' | 'year' | 'custom') => {
+    const now = new Date();
+    let start: Date, end: Date;
+
+    switch (period) {
+      case 'month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'quarter':
+        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+        start = new Date(now.getFullYear(), quarterStart, 1);
+        end = new Date(now.getFullYear(), quarterStart + 3, 0);
+        break;
+      case 'year':
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+        break;
+      default:
+        return;
+    }
+
+    setFilterDateRange({ start, end });
+    setSelectedPeriod(period);
+    refreshDashboard(start, end);
+  };
 
   useEffect(() => {
     // Définir la plage de dates par défaut (mois en cours)
@@ -168,10 +187,6 @@ const Finances = () => {
         endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
         periodType = 'year';
         break;
-      case 'ytd':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        periodType = 'ytd';
-        break;
       case 'custom':
         // Pour les dates personnalisées, on garde les dates actuelles
         if (filterDateRange) {
@@ -193,7 +208,7 @@ const Finances = () => {
     setFilterDateRange({ start: startDate, end: endDate });
     
     // Appliquer les filtres supplémentaires au tableau de bord
-    refreshDashboard(startDate, endDate, filterType, filterPropertyType);
+    refreshDashboard(startDate, endDate);
   };
 
   const handleEditFlow = (flow: FinancialFlow) => {
@@ -759,34 +774,99 @@ const Finances = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Finances</h1>
-          <p className="text-gray-600">Suivi financier et fiscal de votre portefeuille</p>
+    <div className="space-y-8">
+      {/* Enhanced Header with Statistics */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-green-600 rounded-xl shadow-lg">
+              <DollarSign className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Finances</h1>
+              <p className="text-gray-600 mt-1">
+                Suivi financier et fiscal de votre portefeuille
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleAddFlow}
+              className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 hover:scale-105"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Ajouter un flux</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
+            >
+              <Download className="h-5 w-5" />
+              <span>Rapports</span>
+            </button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleAddFlow}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Ajouter un flux</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('reports')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <Download className="h-5 w-5" />
-            <span>Rapports</span>
-          </button>
-        </div>
+
+        {/* Financial Statistics Cards */}
+        {dashboardData && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Revenus</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {dashboardData.totalIncome?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || '0 €'}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Charges</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {dashboardData.totalExpense?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || '0 €'}
+                  </p>
+                </div>
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Bénéfice</p>
+                  <p className={`text-2xl font-bold ${((dashboardData.totalIncome || 0) - (dashboardData.totalExpense || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {((dashboardData.totalIncome || 0) - (dashboardData.totalExpense || 0)).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-lg ${((dashboardData.totalIncome || 0) - (dashboardData.totalExpense || 0)) >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <PieChart className={`h-5 w-5 ${((dashboardData.totalIncome || 0) - (dashboardData.totalExpense || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Transactions</p>
+                  <p className="text-2xl font-bold text-blue-600">{flows.length}</p>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center space-x-3">
           <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
           <div>
             <p className="text-red-800 font-medium">Erreur</p>

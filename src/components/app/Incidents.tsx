@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   AlertTriangle, 
   Plus, 
@@ -10,16 +10,10 @@ import {
   Eye,
   Edit,
   MessageSquare,
-  Phone,
-  Mail,
-  Calendar,
   User,
-  Home,
   Wrench,
   DollarSign,
-  FileText,
-  Camera,
-  Send
+  FileText
 } from 'lucide-react';
 
 interface Incident {
@@ -268,60 +262,74 @@ const Incidents = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des incidents</h1>
-          <p className="text-gray-600">Suivez et résolvez les problèmes de vos biens</p>
+      {/* Enhanced Header with Statistics */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-red-600 rounded-xl shadow-lg">
+              <AlertTriangle className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestion des incidents</h1>
+              <p className="text-gray-600 mt-1">
+                Suivez et résolvez les problèmes de vos biens
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowIncidentForm(true)}
+            className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transform transition-all duration-200 hover:scale-105"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Signaler un incident
+          </button>
         </div>
-        <button
-          onClick={() => setShowIncidentForm(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Signaler un incident</span>
-        </button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Incidents ouverts</p>
-              <p className="text-3xl font-bold text-blue-600">{openIncidents}</p>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Incidents ouverts</p>
+                <p className="text-2xl font-bold text-blue-600">{openIncidents}</p>
+              </div>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
             </div>
-            <Clock className="h-8 w-8 text-blue-600" />
           </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">En cours</p>
-              <p className="text-3xl font-bold text-yellow-600">{inProgressIncidents}</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">En cours</p>
+                <p className="text-2xl font-bold text-yellow-600">{inProgressIncidents}</p>
+              </div>
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Wrench className="h-5 w-5 text-yellow-600" />
+              </div>
             </div>
-            <Wrench className="h-8 w-8 text-yellow-600" />
           </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Urgents</p>
-              <p className="text-3xl font-bold text-red-600">{urgentIncidents}</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Urgents</p>
+                <p className="text-2xl font-bold text-red-600">{urgentIncidents}</p>
+              </div>
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
             </div>
-            <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Coût total</p>
-              <p className="text-3xl font-bold text-purple-600">{totalCost}€</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Coût total</p>
+                <p className="text-2xl font-bold text-purple-600">{totalCost}€</p>
+              </div>
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <DollarSign className="h-5 w-5 text-purple-600" />
+              </div>
             </div>
-            <DollarSign className="h-8 w-8 text-purple-600" />
           </div>
         </div>
       </div>

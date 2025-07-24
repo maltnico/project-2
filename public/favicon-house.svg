@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Modern favicon design for EasyBail -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6"/>
+      <stop offset="100%" style="stop-color:#6366F1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
+  
+  <!-- House roof -->
+  <path d="M6 14L16 6L26 14V16H24V14.8L16 8.4L8 14.8V16H6Z" fill="white" opacity="0.9"/>
+  
+  <!-- House body -->
+  <rect x="8" y="14" width="16" height="10" fill="white" opacity="0.8" rx="1"/>
+  
+  <!-- Door -->
+  <rect x="14" y="18" width="4" height="6" fill="url(#bg)" opacity="0.7" rx="0.5"/>
+  
+  <!-- Windows -->
+  <rect x="10" y="16" width="3" height="3" fill="url(#bg)" opacity="0.6" rx="0.5"/>
+  <rect x="19" y="16" width="3" height="3" fill="url(#bg)" opacity="0.6" rx="0.5"/>
+  
+  <!-- Accent dot -->
+  <circle cx="16" cy="8" r="1.5" fill="white"/>
+</svg>
