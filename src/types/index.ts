@@ -80,7 +80,9 @@ export interface Automation {
   active: boolean;
   propertyId?: string;
   description: string;
+  emailTemplateId?: string;
   documentTemplateId?: string;
+  executionTime?: string; // Format HH:MM pour l'heure d'exécution souhaitée
   createdAt: Date;
 }
 

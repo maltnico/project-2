@@ -36,7 +36,7 @@ ChartJS.register(
 );
 
 const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) => {
-  const { activities, stats, refreshActivities, loading: activitiesLoading } = useActivities({}, 7); // Récupérer les 7 dernières activités
+  const { activities, stats, refreshActivities, loading: activitiesLoading } = useActivities({}, 6); // Récupérer les 6 dernières activités
   const { properties, loading: propertiesLoading } = useProperties();
   const { tasks, loading: tasksLoading } = useTasks();
   const { dashboardData, loading: financeLoading, refreshDashboard } = useFinances();
@@ -44,23 +44,10 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'semester' | 'year'>('month');
   const [generatedDocuments, setGeneratedDocuments] = useState(0);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Charger le nombre de documents générés
+  // Charger le nombre de documents générés au démarrage
   React.useEffect(() => {
-    const loadGeneratedDocuments = async () => {
-      try {
-        setDocumentsLoading(true);
-        const documents = await documentStorage.getDocumentsList();
-        setGeneratedDocuments(documents.length);
-      } catch (error) {
-        console.error('Erreur lors du chargement des documents:', error);
-        // En cas d'erreur, utiliser des données de démonstration
-        setGeneratedDocuments(3);
-      } finally {
-        setDocumentsLoading(false);
-      }
-    };
-    
     loadGeneratedDocuments();
   }, []);
 
@@ -68,6 +55,41 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
   const occupiedProperties = properties.filter(p => p.status === 'rented').length;
   const totalRent = properties.reduce((sum, p) => p.status === 'rented' ? sum + p.rent : sum, 0);
   const activeAutomations = automations.filter(a => a.active).length;
+
+  // Fonction pour actualiser toutes les données du tableau de bord
+  const handleRefreshAll = async () => {
+    try {
+      setIsRefreshing(true);
+      
+      // Rafraîchir toutes les données en parallèle
+      await Promise.all([
+        refreshActivities(),
+        refreshDashboard(),
+        // Recharger les documents générés
+        loadGeneratedDocuments()
+      ]);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'actualisation:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Charger le nombre de documents générés
+  const loadGeneratedDocuments = async () => {
+    try {
+      setDocumentsLoading(true);
+      const documents = await documentStorage.getDocumentsList();
+      setGeneratedDocuments(documents.length);
+    } catch (error) {
+      console.error('Erreur lors du chargement des documents:', error);
+      // En cas d'erreur, utiliser des données de démonstration
+      setGeneratedDocuments(3);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -173,11 +195,12 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => refreshDashboard()}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
+              onClick={handleRefreshAll}
+              disabled={isRefreshing}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-lg"
             >
-              <RefreshCw className="h-5 w-5" />
-              <span>Actualiser</span>
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
             </button>
           </div>
         </div>

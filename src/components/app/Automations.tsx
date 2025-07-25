@@ -84,8 +84,6 @@ const Automations = () => {
   const [executingAutomation, setExecutingAutomation] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<{id: string, success: boolean} | null>(null);
   const [schedulerActive, setSchedulerActive] = useState<boolean>(automationScheduler.isActive());
-  const [nextExecutionTime, setNextExecutionTime] = useState<string>('09:00');
-  const [showTimeSettings, setShowTimeSettings] = useState(false);
 
   const filteredAutomations = automations.filter(automation => {
     const matchesSearch = (automation.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,13 +100,25 @@ const Automations = () => {
     const activeAutomations = automations.filter(a => a.active);
     if (activeAutomations.length === 0) return null;
     
-    const nextExecution = activeAutomations.reduce((earliest, automation) => {
-      return !earliest || automation.nextExecution < earliest 
-        ? automation.nextExecution 
+    const nextAutomation = activeAutomations.reduce((earliest, automation) => {
+      return !earliest || automation.nextExecution < earliest.nextExecution 
+        ? automation 
         : earliest;
-    }, null as Date | null);
+    }, null as Automation | null);
     
-    return nextExecution;
+    return nextAutomation ? nextAutomation.nextExecution : null;
+  }, [automations]);
+
+  // Trouver l'automatisation qui sera exécutée en prochaine
+  const nextAutomation = React.useMemo(() => {
+    const activeAutomations = automations.filter(a => a.active);
+    if (activeAutomations.length === 0) return null;
+    
+    return activeAutomations.reduce((earliest, automation) => {
+      return !earliest || automation.nextExecution < earliest.nextExecution 
+        ? automation 
+        : earliest;
+    }, null as Automation | null);
   }, [automations]);
 
   const timeLeft = useCountdown(nextAutomaticExecution);
@@ -230,22 +240,21 @@ const Automations = () => {
     setSchedulerActive(automationScheduler.isActive());
   };
 
-  const handleUpdateExecutionTime = () => {
-    // Créer une nouvelle date pour demain à l'heure spécifiée
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const [hours, minutes] = nextExecutionTime.split(':').map(Number);
-    tomorrow.setHours(hours, minutes, 0, 0);
-    
-    // Ici on pourrait mettre à jour le planificateur avec la nouvelle heure
-    // Pour l'instant, on affiche juste un message de confirmation
-    alert(`Prochaine exécution automatique programmée pour demain à ${nextExecutionTime}`);
-    setShowTimeSettings(false);
-  };
-
   const formatTimeLeft = (timeLeft: any) => {
-    if (!timeLeft) return 'Aucune automatisation programmée';
-    return `${timeLeft.days}j ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s`;
+    if (!timeLeft) {
+      if (nextAutomation) {
+        const executionTime = nextAutomation.executionTime || '00:00';
+        return `Prochaine automatisation programmée: "${nextAutomation.name}" à ${executionTime}`;
+      }
+      return 'Aucune automatisation programmée';
+    }
+    
+    const timeDisplay = `${timeLeft.days}j ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s`;
+    if (nextAutomation) {
+      const executionTime = nextAutomation.executionTime || '00:00';
+      return `"${nextAutomation.name}" dans ${timeDisplay} (à ${executionTime})`;
+    }
+    return timeDisplay;
   };
 
   const activeAutomations = automations.filter(a => a.active).length;
@@ -357,63 +366,30 @@ const Automations = () => {
             <div className="text-sm text-gray-600 space-y-1">
               <p>
               {schedulerActive 
-                ? 'Les automatisations seront exécutées automatiquement selon leur programmation' 
+                ? 'Les automatisations sont vérifiées toutes les 10 minutes et exécutées automatiquement selon leur programmation' 
                 : 'Activez le planificateur pour exécuter automatiquement les automatisations programmées'}
               </p>
-              {schedulerActive && nextAutomaticExecution && (
+              {schedulerActive && !nextAutomaticExecution && (
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
-                  <span className="text-blue-700 font-medium">
-                    Prochaine exécution dans: {formatTimeLeft(timeLeft)}
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600 font-medium">
+                    Aucune automatisation programmée
                   </span>
                 </div>
               )}
               {schedulerActive && nextAutomaticExecution && (
-                <p className="text-xs text-gray-500">
-                  Prochaine automatisation: {nextAutomaticExecution.toLocaleString('fr-FR')}
-                </p>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-700 font-medium">
+                    {formatTimeLeft(timeLeft)}
+                  </span>
+                </div>
               )}
             </div>
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          {schedulerActive && (
-            <div className="text-right">
-              <button
-                onClick={() => setShowTimeSettings(!showTimeSettings)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Programmer</span>
-              </button>
-              {showTimeSettings && (
-                <div className="mt-2 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="flex items-center space-x-2">
-                    <label className="text-xs text-gray-600">Heure d'exécution:</label>
-                    <input
-                      type="time"
-                      value={nextExecutionTime}
-                      onChange={(e) => setNextExecutionTime(e.target.value)}
-                      className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={handleUpdateExecutionTime}
-                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      OK
-                    </button>
-                    <button
-                      onClick={() => setShowTimeSettings(false)}
-                      className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <span className="text-sm text-gray-500">Intervalle de vérification: quotidienne</span>
+          <span className="text-sm text-gray-500">Vérification: toutes les 10 minutes</span>
           <button 
             onClick={toggleScheduler}
             className={`p-2 rounded-lg ${

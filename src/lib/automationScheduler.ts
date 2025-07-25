@@ -1,16 +1,12 @@
-import { supabase } from './supabase';
 import { automationService } from './automationService';
-import { localEmailService } from './localEmailService';
-import { Automation } from '../types';
 
 /**
  * Service pour gérer les exécutions programmées des automatisations
  */
 class AutomationScheduler {
   private timerId: number | null = null;
-  private checkInterval = 60000; // Vérifier toutes les minutes pour le timer de vérification
+  private checkInterval = 600000; // Vérifier toutes les 10 minutes pour permettre l'exécution le jour même
   private isRunning = false;
-  private lastDailyRunDate: string | null = null;
 
   /**
    * Démarre le planificateur d'automatisations
@@ -43,59 +39,57 @@ class AutomationScheduler {
   }
 
   /**
-   * Vérifie si c'est l'heure d'exécuter les automatisations (9h France)
+   * Vérifie et exécute les automatisations dues à tout moment de la journée
    */
   private checkDailySchedule(): void {
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentDate = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    console.log(`Vérification des automatisations à ${now.toLocaleTimeString('fr-FR')}`);
     
-    // Vérifier si nous avons déjà exécuté les automatisations aujourd'hui
-    if (this.lastDailyRunDate === currentDate) {
-      // Déjà exécuté aujourd'hui, ne rien faire
-      return;
-    }
+    // Exécuter les automatisations dues immédiatement
+    this.checkAndExecuteAutomations();
     
-    // Exécuter à 9h (heure locale)
-    if (currentHour === 9) {
-      console.log(`Il est 9h, exécution des automatisations programmées pour aujourd'hui (${currentDate})`);
-      this.checkAndExecuteAutomations();
-      this.lastDailyRunDate = currentDate;
-      
-      // Traiter la file d'attente des emails
-      this.processEmailQueue();
-    } else {
-      console.log(`Il est ${currentHour}h, les automatisations seront exécutées à 9h`);
-    }
+    // Traiter la file d'attente des emails
+    this.processEmailQueue();
   }
 
   /**
-   * Vérifie et exécute les automatisations dues
+   * Vérifie et exécute les automatisations dues à l'heure programmée
    */
   private async checkAndExecuteAutomations(): Promise<void> {
     try {
-      // Vérifier si un utilisateur est connecté
-      // Note: Avec le stockage local, nous n'avons plus besoin de vérifier l'utilisateur
-      
       console.log(`Vérification des automatisations dues à ${new Date().toLocaleTimeString('fr-FR')}...`);
       const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       // Récupérer les automatisations actives
       const automations = automationService.getActiveAutomations();
       
       if (automations.length === 0) {
-        console.log('Aucune automatisation à exécuter pour le moment');
+        console.log('Aucune automatisation active');
         return;
       }
       
-      console.log(`${automations.length} automatisation(s) à exécuter`);
+      console.log(`${automations.length} automatisation(s) active(s) trouvée(s)`);
       
-      // Exécuter chaque automatisation due
+      // Exécuter chaque automatisation due à cette heure
       for (const automation of automations) {
         try {
-          if (automation.nextExecution <= now) {
-            console.log(`Exécution de l'automatisation: ${automation.name}`);
+          // Vérifier si l'automatisation est due (date passée ou aujourd'hui)
+          const isDue = automation.nextExecution <= now;
+          
+          // Vérifier si l'heure correspond (avec une tolérance de +/- 10 minutes)
+          const automationTime = automation.executionTime || '09:00';
+          const [automationHour, automationMinute] = automationTime.split(':').map(Number);
+          const automationMinutes = automationHour * 60 + automationMinute;
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+          const timeDiff = Math.abs(currentMinutes - automationMinutes);
+          const isTimeMatched = timeDiff <= 10; // Tolérance de 10 minutes
+          
+          if (isDue && isTimeMatched) {
+            console.log(`Exécution de l'automatisation: ${automation.name} (programmée à ${automationTime})`);
             await automationService.executeAutomation(automation.id);
+          } else if (isDue && !isTimeMatched) {
+            console.log(`Automatisation ${automation.name} due mais pas à la bonne heure (${automationTime} vs ${currentTime})`);
           }
         } catch (error) {
           console.error(`Erreur lors de l'exécution de l'automatisation ${automation.id}:`, error);
@@ -170,9 +164,6 @@ class AutomationScheduler {
       
       // Traiter la file d'attente des emails
       await this.processEmailQueue();
-      
-      // Marquer comme exécuté aujourd'hui
-      this.lastDailyRunDate = new Date().toISOString().split('T')[0];
       
       return successCount;
     } catch (error) {

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   X, 
   Save, 
-  Zap, 
   Calendar, 
   Clock,
   Building,
@@ -38,8 +37,8 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
   const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
   
+  // Charger les templates d'email
   // Charger les templates d'email
   useEffect(() => {
     if (isOpen) {
@@ -56,20 +55,16 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
         });
     }
   }, [isOpen]);
-  
+
   // Charger les documents générés
   useEffect(() => {
     if (isOpen) {
-      setLoadingDocuments(true);
       documentStorage.getDocumentsList()
         .then(docs => {
           setDocuments(docs);
         })
         .catch(error => {
           console.error('Erreur lors du chargement des documents:', error);
-        })
-        .finally(() => {
-          setLoadingDocuments(false);
         });
     }
   }, [isOpen]);
@@ -78,13 +73,14 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
     name: automation?.name || '',
     type: automation?.type || 'receipt',
     frequency: automation?.frequency || 'monthly',
-    nextExecution: automation?.nextExecution || new Date(),
+    nextExecution: automation?.nextExecution || new Date(), // Permettre la programmation pour aujourd'hui
     lastExecution: automation?.lastExecution,
     active: automation?.active ?? true,
-    propertyId: automation?.propertyId || null,
+    propertyId: automation?.propertyId || undefined,
     description: automation?.description || '',
-    emailTemplateId: automation?.emailTemplateId || null,
-    documentTemplateId: automation?.documentTemplateId || null
+    emailTemplateId: automation?.emailTemplateId || undefined,
+    documentTemplateId: automation?.documentTemplateId || undefined,
+    executionTime: automation?.executionTime || '09:00' // Heure par défaut 09:00
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -155,6 +151,14 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
     
     if (!formData.nextExecution) {
       newErrors.nextExecution = 'La date d\'exécution est requise';
+    }
+    
+    if (!formData.executionTime) {
+      newErrors.executionTime = 'L\'heure d\'exécution est requise';
+    }
+    
+    if (!formData.emailTemplateId) {
+      newErrors.emailTemplateId = 'Un template d\'email est requis pour envoyer l\'automatisation';
     }
     
     // Vérifier que le bien immobilier est requis pour certains types d'automatisation
@@ -277,6 +281,31 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
             )}
           </div>
 
+          {/* Execution Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Heure d'exécution *
+            </label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="time"
+                name="executionTime"
+                value={formData.executionTime || '09:00'}
+                onChange={handleInputChange}
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.executionTime ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+            </div>
+            {errors.executionTime && (
+              <p className="mt-1 text-sm text-red-600">{errors.executionTime}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Heure à laquelle l'automatisation sera exécutée quand elle devient due.
+            </p>
+          </div>
+
           {/* Next Execution */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -368,10 +397,11 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
               <div>
                 <p className="text-blue-800 font-medium">À propos des automatisations</p>
                 <p className="text-blue-700 text-sm mt-1">
-                  Les automatisations sont exécutées automatiquement à la date programmée si le planificateur est actif.
-                  Vous pouvez également les exécuter manuellement à tout moment depuis la liste des automatisations.
+                  Les automatisations sont vérifiées toutes les 10 minutes. Elles seront exécutées à la date et 
+                  à l'heure programmées (avec une tolérance de ±10 minutes).
                 </p>
                 <p className="text-blue-700 text-sm mt-2">
+                  Un template d'email est obligatoire car l'automatisation enverra un email (avec ou sans document en pièce jointe).
                   La date de prochaine exécution sera automatiquement mise à jour selon la fréquence choisie après chaque exécution réussie.
                 </p>
               </div>
@@ -381,7 +411,7 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
           {/* Email Template Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Template d'email (optionnel)
+              Template d'email *
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -389,17 +419,22 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
                 name="emailTemplateId"
                 value={formData.emailTemplateId ?? ''}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.emailTemplateId ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
               >
-                <option value="">Aucun template</option>
+                <option value="">Sélectionner un template d'email</option>
                 {loadingTemplates && <option disabled>Chargement des templates...</option>}
                 {emailTemplates.map(template => (
                   <option key={template.id} value={template.id}>{template.name}</option>
                 ))}
               </select>
             </div>
+            {errors.emailTemplateId && (
+              <p className="mt-1 text-sm text-red-600">{errors.emailTemplateId}</p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
-              Sélectionnez un template d'email à utiliser pour cette automatisation. Si aucun template n'est sélectionné, aucun email ne sera envoyé.
+              Un template d'email est requis pour envoyer automatiquement l'email avec le document en pièce jointe.
             </p>
           </div>
             

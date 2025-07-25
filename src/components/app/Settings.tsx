@@ -11,7 +11,6 @@ import {
   Mail, 
   Save,
   Download,
-  Upload,
   Trash2,
   AlertTriangle,
   CheckCircle,
@@ -577,20 +576,6 @@ const Settings = () => {
               Exporter en CSV
             </button>
           </div>
-        </div>
-
-        {/* Import Data */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Upload className="h-6 w-6 text-green-600" />
-            <h4 className="text-lg font-semibold text-green-900">Importer des données</h4>
-          </div>
-          <p className="text-green-700 mb-4">
-            Importez vos données depuis un autre système de gestion locative.
-          </p>
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
-            Choisir un fichier
-          </button>
         </div>
 
         {/* Delete Account */}
