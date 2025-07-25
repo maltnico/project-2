@@ -20,9 +20,206 @@ import {
   Smartphone,
   Lock,
   FileText,
-  HelpCircle
+  HelpCircle,
+  X,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { sendContactEmailDirect } from '../../lib/contactService';
+
+// Contact Modal Component - Moved outside to prevent recreation on each render
+const ContactModal = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  contactForm, 
+  setContactForm, 
+  contactFormErrors, 
+  setContactFormErrors, 
+  isSubmitting, 
+  profileData 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  contactForm: { subject: string; message: string; priority: 'low' | 'normal' | 'high' };
+  setContactForm: React.Dispatch<React.SetStateAction<{ subject: string; message: string; priority: 'low' | 'normal' | 'high' }>>;
+  contactFormErrors: { subject?: string; message?: string };
+  setContactFormErrors: React.Dispatch<React.SetStateAction<{ subject?: string; message?: string }>>;
+  isSubmitting: boolean;
+  profileData: { firstName: string; lastName: string; email: string; phone: string; companyName: string; avatar: string };
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Mail className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Contacter le support</h3>
+              <p className="text-sm text-gray-600">Nous vous répondons sous 2h</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="max-h-[calc(90vh-200px)] overflow-y-auto">
+          <form onSubmit={onSubmit} className="p-6">
+            <div className="space-y-6">
+              {/* Priority Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Niveau de priorité
+                </label>
+                <select
+                  value={contactForm.priority}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, priority: e.target.value as 'low' | 'normal' | 'high' }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  <option value="low">⚪ Faible</option>
+                  <option value="normal">🔵 Normale</option>
+                  <option value="high">🔴 Élevée</option>
+                </select>
+              </div>
+
+              {/* Subject Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sujet du message *
+                </label>
+                <input
+                  type="text"
+                  value={contactForm.subject}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setContactForm(prev => ({ ...prev, subject: value }));
+                    if (contactFormErrors.subject) {
+                      setContactFormErrors(prev => ({ ...prev, subject: undefined }));
+                    }
+                  }}
+                  placeholder="Ex: Problème de connexion, Question sur la facturation..."
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
+                    contactFormErrors.subject 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300'
+                  }`}
+                  disabled={isSubmitting}
+                />
+                {contactFormErrors.subject && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>{contactFormErrors.subject}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Message Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Votre message *
+                </label>
+                <textarea
+                  value={contactForm.message}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setContactForm(prev => ({ ...prev, message: value }));
+                    if (contactFormErrors.message) {
+                      setContactFormErrors(prev => ({ ...prev, message: undefined }));
+                    }
+                  }}
+                  placeholder="Décrivez votre demande en détail. Plus vous serez précis, plus nous pourrons vous aider efficacement."
+                  rows={5}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none ${
+                    contactFormErrors.message 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300'
+                  }`}
+                  disabled={isSubmitting}
+                />
+                {contactFormErrors.message && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>{contactFormErrors.message}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* User Info Display */}
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-3 mb-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-medium text-gray-900">Informations de contact</h4>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="text-gray-700">
+                    <span className="font-medium">Email:</span> {profileData.email || 'Non renseigné'}
+                  </p>
+                  {profileData.phone && (
+                    <p className="text-gray-700">
+                      <span className="font-medium">Téléphone:</span> {profileData.phone}
+                    </p>
+                  )}
+                  {profileData.companyName && (
+                    <p className="text-gray-700">
+                      <span className="font-medium">Société:</span> {profileData.companyName}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+              <div className="text-xs text-gray-500">
+                * Champs obligatoires
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !contactForm.subject.trim() || !contactForm.message.trim()}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 min-w-[120px] justify-center"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Envoi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      <span>Envoyer</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Settings = () => {
   const { user, profile, updateProfile } = useAuth();
@@ -41,19 +238,18 @@ const Settings = () => {
     avatar: ''
   });
 
-  // Initialize profile data when profile is loaded
-  useEffect(() => {
-    if (profile) {
-      setProfileData({
-        firstName: profile.first_name || '',
-        lastName: profile.last_name || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        companyName: profile.company_name || '',
-        avatar: profile.avatar_url || ''
-      });
-    }
-  }, [profile]);
+  // Contact modal states
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    subject: '',
+    message: '',
+    priority: 'normal' as 'low' | 'normal' | 'high'
+  });
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactFormErrors, setContactFormErrors] = useState<{
+    subject?: string;
+    message?: string;
+  }>({});
 
   // Initialize profile data when profile is loaded
   useEffect(() => {
@@ -122,13 +318,6 @@ const Settings = () => {
         phone: profileData.phone,
         company_name: profileData.companyName
       });
-      // Update profile in Supabase
-      await updateProfile({
-        first_name: profileData.firstName,
-        last_name: profileData.lastName,
-        phone: profileData.phone,
-        company_name: profileData.companyName
-      });
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' });
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -136,12 +325,117 @@ const Settings = () => {
         type: 'error', 
         text: error instanceof Error ? error.message : 'Erreur lors de la mise à jour'
       });
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Erreur lors de la mise à jour'
-      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Contact modal functions
+  const validateContactForm = () => {
+    const errors: { subject?: string; message?: string } = {};
+    
+    if (!contactForm.subject.trim()) {
+      errors.subject = 'Le sujet est obligatoire';
+    } else if (contactForm.subject.trim().length < 5) {
+      errors.subject = 'Le sujet doit contenir au moins 5 caractères';
+    }
+    
+    if (!contactForm.message.trim()) {
+      errors.message = 'Le message est obligatoire';
+    } else if (contactForm.message.trim().length < 10) {
+      errors.message = 'Le message doit contenir au moins 10 caractères';
+    }
+    
+    return errors;
+  };
+
+  const resetContactForm = () => {
+    setContactForm({
+      subject: '',
+      message: '',
+      priority: 'normal'
+    });
+    setContactFormErrors({});
+  };
+
+  const handleContactFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const errors = validateContactForm();
+    if (Object.keys(errors).length > 0) {
+      setContactFormErrors(errors);
+      return;
+    }
+    
+    setIsSubmittingContact(true);
+    setContactFormErrors({});
+    
+    try {
+      // Prepare email data
+      const emailData = {
+        to: 'admin@easybail.pro',
+        subject: `[${contactForm.priority.toUpperCase()}] Support - ${contactForm.subject}`,
+        message: `
+Nouveau message de support reçu:
+
+**Priorité:** ${contactForm.priority === 'high' ? '🔴 Élevée' : contactForm.priority === 'normal' ? '🔵 Normale' : '⚪ Faible'}
+
+**Sujet:** ${contactForm.subject}
+
+**Message:**
+${contactForm.message}
+
+**Informations utilisateur:**
+- Email: ${profileData.email}
+- Nom: ${profileData.firstName} ${profileData.lastName}
+- Téléphone: ${profileData.phone || 'Non renseigné'}
+- Société: ${profileData.companyName || 'Non renseigné'}
+- ID utilisateur: ${user?.id}
+
+---
+Message envoyé le ${new Date().toLocaleString('fr-FR')}
+        `,
+        priority: contactForm.priority,
+        userInfo: {
+          email: profileData.email,
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          phone: profileData.phone,
+          companyName: profileData.companyName,
+          userId: user?.id
+        }
+      };
+
+      // Send email using the contact service
+      await sendContactEmailDirect(emailData);
+      
+      setMessage({ 
+        type: 'success', 
+        text: 'Votre message a été envoyé avec succès. Notre équipe vous répondra sous 2h.' 
+      });
+      
+      resetContactForm();
+      setIsContactModalOpen(false);
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 5000);
+      
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Erreur lors de l\'envoi du message. Veuillez réessayer.' 
+      });
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  };
+
+  const handleCloseContactModal = () => {
+    if (!isSubmittingContact) {
+      setIsContactModalOpen(false);
+      resetContactForm();
     }
   };
 
@@ -622,7 +916,10 @@ const Settings = () => {
             <p className="text-green-700 mb-4">
               Notre équipe vous répond sous 2h en moyenne.
             </p>
-            <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+            <button 
+              onClick={() => setIsContactModalOpen(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
               Envoyer un message
             </button>
           </div>
@@ -746,6 +1043,19 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Contact Modal */}
+      <ContactModal 
+        isOpen={isContactModalOpen}
+        onClose={handleCloseContactModal}
+        onSubmit={handleContactFormSubmit}
+        contactForm={contactForm}
+        setContactForm={setContactForm}
+        contactFormErrors={contactFormErrors}
+        setContactFormErrors={setContactFormErrors}
+        isSubmitting={isSubmittingContact}
+        profileData={profileData}
+      />
     </div>
   );
 };
