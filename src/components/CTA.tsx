@@ -1,13 +1,7 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Rocket, Star, Shield } from 'lucide-react';
+import { ArrowRight, CheckCircle, Star, Shield } from 'lucide-react';
 
-interface CTAProps {
-  onLoginClick?: () => void;
-  onSignupClick?: () => void;
-}
-
-const CTA: React.FC<CTAProps> = ({ onLoginClick, onSignupClick }) => {
+const CTA = () => {
   return (
     <section className="py-20 bg-blue-600 relative overflow-hidden">
       {/* Background Elements */}

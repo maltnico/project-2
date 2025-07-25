@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { 
-  Settings, 
   Save, 
   RefreshCw, 
   AlertTriangle, 
   CheckCircle, 
-  Globe, 
-  Clock, 
-  Shield, 
   Database, 
-  Mail, 
-  Bell,
-  Palette,
-  Code,
-  Key,
   Server,
-  HardDrive
+  Globe,
+  Shield,
+  Bell,
+  Settings,
+  Mail,
+  Palette
 } from 'lucide-react';
 
 interface AdminSettingsData {
@@ -133,7 +129,7 @@ const AdminSettings: React.FC = () => {
     { id: 'performance', label: 'Performance', icon: Server }
   ];
 
-  const handleInputChange = (section: keyof AdminSettingsData, field: string, value: any) => {
+  const handleInputChange = (section: keyof AdminSettingsData, field: string, value: string | number | boolean) => {
     setSettings(prev => ({
       ...prev,
       [section]: {
@@ -155,7 +151,7 @@ const AdminSettings: React.FC = () => {
       localStorage.setItem('admin_settings', JSON.stringify(settings));
       
       setMessage({ type: 'success', text: 'Paramètres sauvegardés avec succès' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Erreur lors de la sauvegarde des paramètres' });
     } finally {
       setLoading(false);

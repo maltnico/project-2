@@ -535,10 +535,10 @@ class EmailTemplateService {
       }
       
       // Vérifier si le contenu est un JSON (design Unlayer)
-      let htmlContent = processed.content;
+      const htmlContent = processed.content;
       
       // Générer le document PDF si un template de document est associé
-      let attachments: Array<{
+      const attachments: Array<{
         filename: string;
         content: string;
         contentType: string;

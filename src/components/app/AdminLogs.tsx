@@ -4,7 +4,6 @@ import {
   Search, 
   Filter, 
   RefreshCw, 
-  Calendar, 
   Download, 
   Trash2, 
   AlertTriangle, 
@@ -18,8 +17,6 @@ import {
   User, 
   Settings,
   Loader2,
-  Clock,
-  Eye,
   EyeOff
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -66,7 +63,7 @@ const AdminLogs: React.FC = () => {
         title: activity.title,
         description: activity.description,
         entityId: activity.entity_id,
-        entityType: activity.entity_type as any,
+        entityType: activity.entity_type as 'property' | 'tenant' | 'document' | 'automation' | 'incident' | undefined,
         entityName: activity.entity_name,
         userId: activity.user_id,
         metadata: activity.metadata,

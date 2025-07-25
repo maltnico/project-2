@@ -17,9 +17,10 @@ import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import AdminDashboard from './AdminDashboard';
 import { supabase } from '../../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 // Fonction pour vérifier si l'utilisateur est admin
-const isUserAdmin = (user: any): boolean => {
+const isUserAdmin = (user: User | null): boolean => {
   // Vérifier l'email admin
   if (user?.email === 'admin@easybail.pro' || user?.user_metadata?.email === 'admin@easybail.pro') {
     return true;
@@ -44,11 +45,11 @@ interface AdminMenuProps {
 }
 
 const AdminMenu: React.FC<AdminMenuProps> = ({ isOpen, onClose }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [showEmailTemplateEditor, setShowEmailTemplateEditor] = useState(false);
   const [showMJMLTemplateEditor, setShowMJMLTemplateEditor] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Vérifier l'utilisateur au chargement
   useEffect(() => {

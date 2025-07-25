@@ -3,15 +3,14 @@ import {
   Mail, 
   RefreshCw, 
   Trash2, 
-  Send, 
   CheckCircle, 
   AlertTriangle, 
-  Clock, 
   Eye, 
   X,
   Loader2,
   Download,
-  Play
+  Play,
+  FileText
 } from 'lucide-react';
 import { localEmailService } from '../../lib/localEmailService';
 

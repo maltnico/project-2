@@ -4,19 +4,13 @@ import {
   Download, 
   Upload, 
   RefreshCw, 
-  Calendar, 
   Clock, 
   CheckCircle, 
   AlertTriangle, 
-  Settings, 
-  Play, 
-  Pause,
   Trash2,
   HardDrive,
-  FileText,
   Loader2
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 interface BackupItem {
   id: string;
@@ -113,7 +107,7 @@ const AdminBackup: React.FC = () => {
       
       setBackups(prev => [newBackup, ...prev]);
       setMessage({ type: 'success', text: 'Sauvegarde créée avec succès' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Erreur lors de la création de la sauvegarde' });
     } finally {
       setCreating(false);
@@ -126,7 +120,7 @@ const AdminBackup: React.FC = () => {
     try {
       setBackups(prev => prev.filter(b => b.id !== backupId));
       setMessage({ type: 'success', text: 'Sauvegarde supprimée avec succès' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Erreur lors de la suppression de la sauvegarde' });
     }
   };
@@ -151,7 +145,7 @@ const AdminBackup: React.FC = () => {
       // Simuler la restauration
       await new Promise(resolve => setTimeout(resolve, 2000));
       setMessage({ type: 'success', text: 'Sauvegarde restaurée avec succès' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Erreur lors de la restauration de la sauvegarde' });
     }
   };

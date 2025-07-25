@@ -1,13 +1,7 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Star, Zap, Crown, Rocket } from 'lucide-react';
 
-interface PricingProps {
-  onLoginClick?: () => void;
-  onSignupClick?: () => void;
-}
-
-const Pricing: React.FC<PricingProps> = ({ onLoginClick, onSignupClick }) => {
+const Pricing = () => {
   const plans = [
     {
       icon: Zap,

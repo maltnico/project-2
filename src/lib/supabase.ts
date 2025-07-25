@@ -355,7 +355,7 @@ export const auth = {
         };
       }
       
-      const { data, error } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
       return { data, error: null };
     } catch (error) {
       const errorMessage = (error as Error).message;

@@ -1,4 +1,4 @@
-import { DocumentTemplate, DocumentField } from '../types/documents';
+import { DocumentTemplate } from '../types/documents';
 
 // Clé de stockage local
 const TEMPLATES_STORAGE_KEY = 'easybail_document_templates';

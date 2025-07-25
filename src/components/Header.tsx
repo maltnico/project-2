@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, FileText, ChevronDown, Play } from 'lucide-react';
+import { Menu, X, FileText, Play } from 'lucide-react';
 import { SimpleThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
@@ -10,7 +10,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
 
   return (
     <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
@@ -26,36 +25,9 @@ const Header: React.FC<HeaderProps> = () => {
 
           {/* Navigation Desktop */}
           <nav className="hidden lg:flex items-center space-x-8">
-            <div className="relative group">
-              <button 
-                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold"
-                onMouseEnter={() => setIsProductMenuOpen(true)}
-                onMouseLeave={() => setIsProductMenuOpen(false)}
-              >
-                Produit
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </button>
-              {isProductMenuOpen && (
-                <div 
-                  className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-4 z-50"
-                  onMouseEnter={() => setIsProductMenuOpen(true)}
-                  onMouseLeave={() => setIsProductMenuOpen(false)}
-                >
-                  <a href="#fonctionnalites" className="block px-6 py-3 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
-                    <div className="font-medium">Fonctionnalités</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Découvrez toutes nos fonctionnalités</div>
-                  </a>
-                  <a href="#" className="block px-6 py-3 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
-                    <div className="font-medium">Intégrations</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Connectez vos outils favoris</div>
-                  </a>
-                  <a href="#" className="block px-6 py-3 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
-                    <div className="font-medium">API</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Développez avec notre API</div>
-                  </a>
-                </div>
-              )}
-            </div>
+            <a href="#fonctionnalites" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold">
+              Fonctionnalités
+            </a>
             <a href="#tarifs" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-semibold">
               Tarifs
             </a>

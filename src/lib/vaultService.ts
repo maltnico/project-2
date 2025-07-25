@@ -344,7 +344,7 @@ class VaultService {
       for (const key of mailKeys) {
         try {
           await this.deleteEntry(key);
-        } catch (error) {
+        } catch {
           // Ignorer si l'entrée n'existe pas
         }
       }

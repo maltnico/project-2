@@ -115,7 +115,7 @@ const AlertForm: React.FC<AlertFormProps> = ({ isOpen, onClose, onSave }) => {
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, type: type.value as any }))}
+                    onClick={() => setFormData(prev => ({ ...prev, type: type.value as 'info' | 'warning' | 'error' | 'success' }))}
                     className={`flex items-center space-x-2 p-3 rounded-lg border-2 transition-colors ${
                       formData.type === type.value
                         ? 'border-blue-600 bg-blue-50'
@@ -144,7 +144,7 @@ const AlertForm: React.FC<AlertFormProps> = ({ isOpen, onClose, onSave }) => {
                 <button
                   key={priority.value}
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, priority: priority.value as any }))}
+                  onClick={() => setFormData(prev => ({ ...prev, priority: priority.value as 'low' | 'medium' | 'high' }))}
                   className={`p-3 rounded-lg border-2 transition-colors ${
                     formData.priority === priority.value
                       ? 'border-blue-600 bg-blue-50'

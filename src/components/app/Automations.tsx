@@ -5,7 +5,6 @@ import {
   Search, 
   Filter,
   Clock,
-  CheckCircle,
   Play,
   Pause,
   Edit,
@@ -16,10 +15,8 @@ import {
   DollarSign,
   Home,
   Bell,
-  Loader2,
-  Power
+  Loader2
 } from 'lucide-react';
-import { automationScheduler } from '../../lib/automationScheduler';
 
 import { Automation } from '../../types';
 import { useAutomations } from '../../hooks/useAutomations';
@@ -83,7 +80,6 @@ const Automations = () => {
   const [editingAutomation, setEditingAutomation] = useState<Automation | null>(null);
   const [executingAutomation, setExecutingAutomation] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<{id: string, success: boolean} | null>(null);
-  const [schedulerActive, setSchedulerActive] = useState<boolean>(automationScheduler.isActive());
 
   const filteredAutomations = automations.filter(automation => {
     const matchesSearch = (automation.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -230,17 +226,8 @@ const Automations = () => {
       }
     }
   };
-  
-  const toggleScheduler = () => {
-    if (schedulerActive) {
-      automationScheduler.stop();
-    } else {
-      automationScheduler.start();
-    }
-    setSchedulerActive(automationScheduler.isActive());
-  };
 
-  const formatTimeLeft = (timeLeft: any) => {
+  const formatTimeLeft = (timeLeft: { days: number; hours: number; minutes: number; seconds: number } | null) => {
     if (!timeLeft) {
       if (nextAutomation) {
         const executionTime = nextAutomation.executionTime || '00:00';
@@ -256,13 +243,6 @@ const Automations = () => {
     }
     return timeDisplay;
   };
-
-  const activeAutomations = automations.filter(a => a.active).length;
-  const upcomingExecutions = automations.filter(a => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return a.active && a.nextExecution <= tomorrow;
-  }).length;
 
   return (
     <div className="space-y-8">
@@ -282,17 +262,6 @@ const Automations = () => {
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={toggleScheduler}
-              className={`${
-                schedulerActive 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              } text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 shadow-lg`}
-            >
-              <Power className="h-5 w-5" />
-              <span>{schedulerActive ? 'Arrêter' : 'Démarrer'}</span>
-            </button>
-            <button
               onClick={handleAddAutomation}
               className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 hover:scale-105"
             >
@@ -301,75 +270,19 @@ const Automations = () => {
             </button>
           </div>
         </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{automations.length}</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Zap className="h-5 w-5 text-purple-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Actives</p>
-                <p className="text-2xl font-bold text-green-600">{activeAutomations}</p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Prochaines 24h</p>
-                <p className="text-2xl font-bold text-blue-600">{upcomingExecutions}</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Statut</p>
-                <p className={`text-2xl font-bold ${schedulerActive ? 'text-green-600' : 'text-red-600'}`}>
-                  {schedulerActive ? 'ON' : 'OFF'}
-                </p>
-              </div>
-              <div className={`p-2 rounded-lg ${schedulerActive ? 'bg-green-100' : 'bg-red-100'}`}>
-                <Power className={`h-5 w-5 ${schedulerActive ? 'text-green-600' : 'text-red-600'}`} />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Scheduler Status */}
-      <div className={`${
-        schedulerActive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-      } rounded-xl shadow-sm border p-4 flex items-center justify-between`}>
+      <div className="bg-blue-50 border-blue-200 rounded-xl shadow-sm border p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className={`w-3 h-3 rounded-full ${schedulerActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+          <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
           <div>
-            <p className={`font-medium ${schedulerActive ? 'text-green-800' : 'text-gray-800'}`}>
-              {schedulerActive ? 'Planificateur d\'automatisations actif' : 'Planificateur d\'automatisations inactif'}
+            <p className="font-medium text-blue-800">
+              Planificateur d'automatisations actif
             </p>
             <div className="text-sm text-gray-600 space-y-1">
-              <p>
-              {schedulerActive 
-                ? 'Les automatisations sont vérifiées toutes les 10 minutes et exécutées automatiquement selon leur programmation' 
-                : 'Activez le planificateur pour exécuter automatiquement les automatisations programmées'}
-              </p>
-              {schedulerActive && !nextAutomaticExecution && (
+              <p>Les automatisations sont exécutées automatiquement selon leur programmation</p>
+              {!nextAutomaticExecution && (
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-gray-500" />
                   <span className="text-gray-600 font-medium">
@@ -377,7 +290,7 @@ const Automations = () => {
                   </span>
                 </div>
               )}
-              {schedulerActive && nextAutomaticExecution && (
+              {nextAutomaticExecution && (
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-blue-600" />
                   <span className="text-blue-700 font-medium">
@@ -386,52 +299,6 @@ const Automations = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-        <div className="flex items-center space-x-3">
-          <span className="text-sm text-gray-500">Vérification: toutes les 10 minutes</span>
-          <button 
-            onClick={toggleScheduler}
-            className={`p-2 rounded-lg ${
-              schedulerActive 
-                ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                : 'bg-green-100 text-green-600 hover:bg-green-200'
-            } transition-colors`}
-          >
-            {schedulerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total automatisations</p>
-              <p className="text-3xl font-bold text-gray-900">{automations.length}</p>
-            </div>
-            <Zap className="h-8 w-8 text-blue-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Actives</p>
-              <p className="text-3xl font-bold text-green-600">{activeAutomations}</p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Prochaines exécutions</p>
-              <p className="text-3xl font-bold text-orange-600">{upcomingExecutions}</p>
-            </div>
-            <Clock className="h-8 w-8 text-orange-600" />
           </div>
         </div>
       </div>

@@ -5,7 +5,6 @@ import {
   Plus, 
   Calendar, 
   Building, 
-  Tag,
   FileDown,
   Printer,
   Share2,
@@ -22,7 +21,7 @@ import { FinancialReport } from '../../types/financial';
 import { useProperties } from '../../hooks/useProperties';
 
 const FinancialReports: React.FC = () => {
-  const { reports, createReport, generateReport, deleteReport, loading, error } = useFinances();
+  const { reports, createReport, generateReport, deleteReport, loading } = useFinances();
   const { properties } = useProperties();
   
   const [showReportForm, setShowReportForm] = useState(false);
@@ -58,7 +57,7 @@ const FinancialReports: React.FC = () => {
 
   const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const options = e.target.options;
-    const selectedProperties = [];
+    const selectedProperties: string[] = [];
     
     for (let i = 0; i < options.length; i++) {
       if (options[i].selected) {
@@ -82,11 +81,12 @@ const FinancialReports: React.FC = () => {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         break;
-      case 'quarterly':
+      case 'quarterly': {
         const currentQuarter = Math.floor(now.getMonth() / 3);
         startDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
         endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59);
         break;
+      }
       case 'yearly':
         startDate = new Date(now.getFullYear(), 0, 1);
         endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
@@ -111,7 +111,7 @@ const FinancialReports: React.FC = () => {
     e.preventDefault();
     
     try {
-      const newReport = await createReport(formData);
+      await createReport(formData);
       setShowReportForm(false);
       setFormData({
         name: '',
@@ -441,7 +441,7 @@ const FinancialReports: React.FC = () => {
                       <button
                         key={type.value}
                         type="button"
-                        onClick={() => handleTypeChange(type.value as any)}
+                        onClick={() => handleTypeChange(type.value as FinancialReport['type'])}
                         className={`flex flex-col items-center p-3 rounded-lg border-2 transition-colors ${
                           formData.type === type.value
                             ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -547,7 +547,7 @@ const FinancialReports: React.FC = () => {
                     <button
                       key={format.value}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, format: format.value as any }))}
+                      onClick={() => setFormData(prev => ({ ...prev, format: format.value as FinancialReport['format'] }))}
                       className={`flex items-center justify-center space-x-2 p-3 rounded-lg border-2 transition-colors ${
                         formData.format === format.value
                           ? 'border-blue-600 bg-blue-50 text-blue-700'

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase, AuthUser, auth, isConnected } from '../lib/supabase';
+import { supabase, AuthUser, auth } from '../lib/supabase';
 import { activityService } from '../lib/activityService';
 
 interface UseAuthReturn {
@@ -13,8 +13,8 @@ interface UseAuthReturn {
     lastName: string;
     companyName?: string;
     phone?: string;
-  }) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  }) => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -31,31 +31,10 @@ export const useAuth = (): UseAuthReturn => {
     // Récupérer la session initiale
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
         // Si il y a une erreur liée à un utilisateur inexistant ou un refresh token invalide, nettoyer la session
-        if (error && (
-          error.message.includes('User from sub claim in JWT does not exist') || 
-          error.message.includes('user_not_found') ||
-          error.message.includes('Invalid Refresh Token') ||
-          error.message.includes('refresh_token_not_found') ||
-          error.code === 'refresh_token_not_found'
-        )) {
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          return;
-        }
-        
-        // Si il y a une erreur liée à un utilisateur inexistant ou un refresh token invalide, nettoyer la session
-        if (error && (
-          error.message.includes('User from sub claim in JWT does not exist') || 
-          error.message.includes('user_not_found') ||
-          error.message.includes('Invalid Refresh Token') ||
-          error.message.includes('refresh_token_not_found') ||
-          error.code === 'refresh_token_not_found'
-        )) {
-          await supabase.auth.signOut();
+        if (!session) {
           setSession(null);
           setUser(null);
           return;
@@ -68,44 +47,24 @@ export const useAuth = (): UseAuthReturn => {
         if (session?.user) {
           fetchUserProfile(session.user.id);
         }
-      } catch (error) {
-        let errorMessage = error instanceof Error ? error.message : 'Erreur lors de la connexion';
+      } catch (error: unknown) {
+        console.warn('Error getting initial session:', error);
+        const authError = error as { message?: string; name?: string };
         
-        if (error instanceof Error && (
-          error.message.includes('Failed to fetch') ||
-          error.message.includes('timeout') ||
-          error.message.includes('NetworkError')
-        )) {
-          console.warn('Network error during sign in. Attempting to use demo mode.');
-          // Try to use demo mode instead of failing completely
-          try {
-            const demoResult = await auth.signIn(email, password);
-            if (demoResult.data?.user) {
-              setUser(demoResult.data.user);
-              setSession(demoResult.data.session);
-              return;
-            }
-          } catch (demoError) {
-            console.error('Failed to use demo mode:', demoError);
-          }
-        }
-        
-        throw new Error(errorMessage);
         // Ne pas déconnecter l'utilisateur en cas d'erreur réseau
-        if (error.message === 'Network connection failed. Switching to offline mode.' ||
-            error.message === 'Failed to fetch' ||
-            error.message.includes('fetch') ||
-            error.name === 'TimeoutError' ||
-            error.name === 'AbortError' ||
-            error instanceof TypeError) {
+        if (authError.message === 'Network connection failed. Switching to offline mode.' ||
+            authError.message === 'Failed to fetch' ||
+            authError.message?.includes('fetch') ||
+            authError.name === 'TimeoutError' ||
+            authError.name === 'AbortError') {
           // Garder l'état d'authentification actuel en mode hors ligne
-          // Silently handle network errors
+          console.warn('Network error - keeping current auth state');
         } else {
           // En cas d'erreur inattendue (non réseau), nettoyer la session
           try {
             await supabase.auth.signOut();
-          } catch (signOutError) {
-            console.error('Error signing out after session error:', signOutError);
+          } catch {
+            console.error('Error signing out after session error');
           }
           setSession(null);
           setUser(null);
@@ -117,7 +76,7 @@ export const useAuth = (): UseAuthReturn => {
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_, session) => {
         setSession(session);
         setUser(session?.user || null);
         
@@ -135,13 +94,12 @@ export const useAuth = (): UseAuthReturn => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Function to fetch user profile
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await auth.getProfile(userId);
+      const { data } = await auth.getProfile(userId);
       
-      if (error) {
-        console.error('Error fetching user profile:', error);
+      if (!data) {
+        console.error('No user profile data returned');
         return;
       }
       
@@ -156,13 +114,13 @@ export const useAuth = (): UseAuthReturn => {
           data.role = 'admin';
           data.plan = 'expert';
           data.subscription_status = 'active';
-        } catch (updateError) {
-          console.warn('Could not update admin role:', updateError);
+        } catch {
+          console.warn('Could not update admin role');
         }
       }
       
       setProfile(data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error in fetchUserProfile:', error);
     }
   };
@@ -176,52 +134,50 @@ export const useAuth = (): UseAuthReturn => {
       companyName?: string;
       phone?: string;
     }
-  ) => {
+  ): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
-      const { data, error } = await auth.signUp(email, password, {
+      const { data } = await auth.signUp(email, password, {
         firstName: userData.firstName,
         lastName: userData.lastName,
         companyName: userData.companyName,
         phone: userData.phone
       });
       
-      if (error) throw error;
-      
-      setUser(data.user);
+      setUser(data.user as User);
       setProfile(null); // Will be fetched on auth state change
-      setSession(data.session);
+      setSession(data.session as Session);
       
-    } catch (error: any) {
+      return { success: true };
+    } catch (error: unknown) {
       // Handle specific Supabase errors with user-friendly messages
-      let errorMessage = error.message || 'Erreur lors de l\'inscription';
+      const authError = error as { message?: string };
+      let errorMessage = authError.message || 'Erreur lors de l\'inscription';
       
-      if (error.message?.includes('User already registered')) {
+      if (authError.message?.includes('User already registered')) {
         errorMessage = 'Un compte avec cette adresse email existe déjà';
-      } else if (error.message?.includes('Database error saving new user')) {
+      } else if (authError.message?.includes('Database error saving new user')) {
         errorMessage = 'Erreur de configuration de la base de données. Veuillez contacter le support.';
-      } else if (error.message?.includes('Password should be at least')) {
+      } else if (authError.message?.includes('Password should be at least')) {
         errorMessage = 'Le mot de passe doit contenir au moins 6 caractères';
-      } else if (error.message?.includes('Invalid email')) {
+      } else if (authError.message?.includes('Invalid email')) {
         errorMessage = 'Format d\'email invalide';
       }
       
-      throw new Error(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
-      const { data, error } = await auth.signIn(email, password);
+      const { data } = await auth.signIn(email, password);
       
-      if (error) throw error;
-      
-      setUser(data.user);
+      setUser(data.user as User);
       setProfile(null); // Will be fetched on auth state change
-      setSession(data.session);
+      setSession(data.session as Session);
       
       // Refresh activities on successful sign in
       try {
@@ -230,37 +186,38 @@ export const useAuth = (): UseAuthReturn => {
       } catch (err) {
         console.warn('Error refreshing activities after login:', err);
       }
-    } catch (error: any) {
-      let errorMessage = error.message || 'Erreur lors de la connexion';
       
-      if (error.message?.includes('Invalid login credentials')) {
+      return { success: true };
+    } catch (error: unknown) {
+      const authError = error as { message?: string };
+      let errorMessage = authError.message || 'Erreur lors de la connexion';
+      
+      if (authError.message?.includes('Invalid login credentials')) {
         errorMessage = 'Email ou mot de passe incorrect';
-      } else if (error.message?.includes('Email not confirmed')) {
+      } else if (authError.message?.includes('Email not confirmed')) {
         errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
-      } else if (error.message?.includes('Too many requests')) {
+      } else if (authError.message?.includes('Too many requests')) {
         errorMessage = 'Trop de tentatives. Veuillez réessayer dans quelques minutes';
       }
       
-      if (error instanceof Error && (
-        error.message.includes('Failed to fetch') ||
-        error.message.includes('timeout') ||
-        error.message.includes('NetworkError')
-      )) {
+      if (authError.message?.includes('Failed to fetch') ||
+          authError.message?.includes('timeout') ||
+          authError.message?.includes('NetworkError')) {
         console.warn('Network error during sign in. Attempting to use demo mode.');
         // Try to use demo mode instead of failing completely
         try {
           const demoResult = await auth.signIn(email, password);
           if (demoResult.data?.user) {
-            setUser(demoResult.data.user);
-            setSession(demoResult.data.session);
-            return;
+            setUser(demoResult.data.user as User);
+            setSession(demoResult.data.session as Session);
+            return { success: true };
           }
-        } catch (demoError) {
-          console.error('Failed to use demo mode:', demoError);
+        } catch {
+          console.error('Failed to use demo mode');
         }
       }
       
-      throw new Error(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -269,13 +226,13 @@ export const useAuth = (): UseAuthReturn => {
   const signOut = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await supabase.auth.signOut();
       
       setUser(null);
       setProfile(null);
       setSession(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as { message?: string };
       console.warn('Error signing out:', error);
       // Even if there's an error, we should still clear the local state
       setUser(null);
@@ -283,9 +240,9 @@ export const useAuth = (): UseAuthReturn => {
       setSession(null);
       
       // Only throw if it's not a network error
-      if (!(error.message?.includes('Failed to fetch') || 
-            error.message?.includes('timeout') || 
-            error.message?.includes('NetworkError'))) {
+      if (!(authError.message?.includes('Failed to fetch') || 
+            authError.message?.includes('timeout') || 
+            authError.message?.includes('NetworkError'))) {
         throw new Error('Erreur lors de la déconnexion');
       }
     } finally {
@@ -298,14 +255,13 @@ export const useAuth = (): UseAuthReturn => {
     
     setLoading(true);
     try {
-      const { data, error } = await auth.updateProfile(user.id, updates);
-      
-      if (error) throw error;
+      await auth.updateProfile(user.id, updates);
       
       // Mettre à jour l'utilisateur local
       setUser(prev => prev ? { ...prev, user_metadata: { ...prev.user_metadata, ...updates } } : null);
-    } catch (error: any) {
-      throw new Error(error.message || 'Erreur lors de la mise à jour du profil');
+    } catch (error: unknown) {
+      const authError = error as { message?: string };
+      throw new Error(authError.message || 'Erreur lors de la mise à jour du profil');
     } finally {
       setLoading(false);
     }
@@ -313,10 +269,10 @@ export const useAuth = (): UseAuthReturn => {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await auth.resetPassword(email);
-      if (error) throw error;
-    } catch (error: any) {
-      throw new Error(error.message || 'Erreur lors de la réinitialisation du mot de passe');
+      await auth.resetPassword(email);
+    } catch (error: unknown) {
+      const authError = error as { message?: string };
+      throw new Error(authError.message || 'Erreur lors de la réinitialisation du mot de passe');
     }
   };
 

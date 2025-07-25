@@ -21,6 +21,7 @@ interface DocumentFormProps {
   onSave: (document: GeneratedDocument) => void;
   onCancel: () => void;
   isOpen: boolean;
+  initialData?: GeneratedDocument | null;
 }
 
 const DocumentForm: React.FC<DocumentFormProps> = ({
@@ -30,9 +31,10 @@ const DocumentForm: React.FC<DocumentFormProps> = ({
   tenants,
   onSave,
   onCancel,
-  isOpen
+  isOpen,
+  initialData
 }) => {
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | number | boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [selectedTenantId, setSelectedTenantId] = useState<string>('');
@@ -42,15 +44,22 @@ const DocumentForm: React.FC<DocumentFormProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Initialiser les données du formulaire
-      const initialData = documentGenerator.getPrefillData(
-        template.id,
-        properties.find(p => p.id === selectedPropertyId),
-        tenants.find(t => t.id === selectedTenantId)
-      );
-      setFormData(initialData);
+      // Si on édite un document existant, utiliser ses données
+      if (initialData) {
+        setFormData(initialData.data || {});
+        setSelectedPropertyId(initialData.propertyId || '');
+        setSelectedTenantId(initialData.tenantId || '');
+      } else {
+        // Sinon, initialiser les données du formulaire avec les valeurs par défaut
+        const prefillData = documentGenerator.getPrefillData(
+          template.id,
+          properties.find(p => p.id === selectedPropertyId),
+          tenants.find(t => t.id === selectedTenantId)
+        );
+        setFormData(prefillData);
+      }
     }
-  }, [isOpen, template.id, selectedPropertyId, selectedTenantId, properties, tenants]);
+  }, [isOpen, template.id, selectedPropertyId, selectedTenantId, properties, tenants, initialData]);
 
   const handleInputChange = (field: DocumentField, value: any) => {
     setFormData(prev => ({
@@ -112,7 +121,6 @@ const DocumentForm: React.FC<DocumentFormProps> = ({
       const document = await documentGenerator.generateDocument({
         templateId: template.id,
         data: formData,
-        userId: userId,
         propertyId: selectedPropertyId || undefined,
         tenantId: selectedTenantId || undefined
       });

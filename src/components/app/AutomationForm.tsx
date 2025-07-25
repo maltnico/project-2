@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Automation } from '../../types';
 import { useProperties } from '../../hooks/useProperties';
-import { emailTemplateService } from '../../lib/emailTemplateService';
+import { emailTemplateService, EmailTemplate } from '../../lib/emailTemplateService';
 import { useEffect } from 'react';
 import { documentStorage } from '../../lib/documentStorage';
 import { GeneratedDocument } from '../../types/documents';
@@ -34,7 +34,7 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
   isOpen
 }) => {
   const { properties } = useProperties();
-  const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
   
@@ -238,7 +238,7 @@ const AutomationForm: React.FC<AutomationFormProps> = ({
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, type: type.value as any }))}
+                    onClick={() => setFormData(prev => ({ ...prev, type: type.value as 'rent_review' | 'receipt' | 'notice' | 'insurance' | 'maintenance' | 'reminder' }))}
                     className={`flex flex-col items-center p-3 rounded-lg border-2 transition-colors ${
                       formData.type === type.value
                         ? 'border-blue-600 bg-blue-50 text-blue-700'

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Plus, Search, Filter, Edit, Trash2, Copy, Send, Eye } from 'lucide-react';
+import { Mail, Plus, Search, Filter, Edit, Trash2, Copy, Send } from 'lucide-react';
 import { emailTemplateService, EmailTemplate } from '../../lib/emailTemplateService';
 import EmailTemplateEditor from './EmailTemplateEditor';
 

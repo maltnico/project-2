@@ -7,14 +7,12 @@ import {
   Eye,
   Edit,
   Send,
-  Clock,
   CheckCircle,
   AlertCircle,
   Trash2,
-  Copy,
   FileDown
 } from 'lucide-react';
-import { DocumentTemplate, GeneratedDocument } from '../../types/documents';
+import { DocumentTemplate, GeneratedDocument, DocumentStatus } from '../../types/documents';
 import { documentTemplates } from '../../lib/documentTemplates';
 import { documentStorage } from '../../lib/documentStorage';
 import { useProperties } from '../../hooks/useProperties';
@@ -36,6 +34,7 @@ const DocumentGenerator = () => {
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<GeneratedDocument | null>(null);
+  const [editingDocument, setEditingDocument] = useState<GeneratedDocument | null>(null);
   // const [showEmailTemplateEditor, setShowEmailTemplateEditor] = useState(false);
   const [viewMode, setViewMode] = useState<'templates' | 'documents'>('templates');
 
@@ -151,9 +150,35 @@ const DocumentGenerator = () => {
     setShowDocumentPreview(true);
   };
 
-  const handleDocumentSaved = async (document: GeneratedDocument) => {
+  const handleEditDocument = (document: GeneratedDocument) => {
+    // Trouver le template associé au document
+    const template = documentTemplates.find(t => t.id === document.templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setEditingDocument(document);
+      setShowDocumentForm(true);
+    } else {
+      console.error('Template non trouvé pour le document:', document.templateId);
+      alert('Impossible de modifier ce document : template non trouvé');
+    }
+  };
+
+  const handleDocumentSaved = async (documentData: any) => {
     try {
-      console.log('💾 Sauvegarde du document:', document.name);
+      const isEditing = editingDocument !== null;
+      console.log(`💾 ${isEditing ? 'Modification' : 'Sauvegarde'} du document en cours...`);
+      
+      // Créer l'objet document avec l'ID
+      const document = {
+        id: editingDocument?.id || crypto.randomUUID(),
+        ...documentData,
+        templateId: selectedTemplate!.id,
+        createdAt: editingDocument?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: editingDocument?.status || 'draft' as DocumentStatus
+      };
+
+      console.log('📝 Document préparé:', document);
       
       // Générer et stocker le PDF
       await generateAndStorePDF(document);
@@ -168,9 +193,10 @@ const DocumentGenerator = () => {
       await loadDocuments();
       setShowDocumentForm(false);
       setSelectedTemplate(null);
+      setEditingDocument(null);
       
       // Afficher un message de succès
-      alert(`Document "${document.name}" créé et sauvegardé avec succès !`);
+      alert(`Document "${document.name}" ${isEditing ? 'modifié' : 'créé'} et sauvegardé avec succès !`);
     } catch (error) {
       console.error('❌ Erreur lors de la sauvegarde:', error);
       alert(`Erreur lors de la sauvegarde du document: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -179,84 +205,109 @@ const DocumentGenerator = () => {
 
   // Fonction pour générer et stocker un PDF à partir du document
   const generateAndStorePDF = async (generatedDoc: GeneratedDocument) => {
-    // PDF generation temporarily disabled
-    console.log('PDF generation disabled for:', generatedDoc.name);
-    /*
     try {
-      // Créer un élément temporaire avec le contenu du document
-      const tempDiv = window.document.createElement('div');
-      tempDiv.innerHTML = generatedDoc.content;
+      console.log('Génération PDF pour:', generatedDoc.name);
       
-      // Styles d'isolation complète pour éviter d'affecter le layout global
+      // Créer un élément temporaire pour le rendu HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = `
+        <div class="document-header" style="border-bottom: 2px solid #333; margin-bottom: 30px; padding-bottom: 15px; text-align: center;">
+          <div class="document-title" style="font-size: 18pt; font-weight: bold; margin-bottom: 10px; color: #333;">${generatedDoc.name}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Type: ${generatedDoc.type}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Statut: ${generatedDoc.status}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Créé le: ${generatedDoc.createdAt.toLocaleDateString('fr-FR')}</div>
+        </div>
+        <div class="document-content" style="margin: 30px 0; text-align: justify; line-height: 1.8;">
+          ${generatedDoc.content}
+        </div>
+        ${generatedDoc.signatures.length > 0 ? `
+        <div class="signature-section" style="margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px;">
+          <div class="signature-title" style="font-weight: bold; margin-bottom: 15px; font-size: 14pt;">Signatures :</div>
+          ${generatedDoc.signatures.map(sig => 
+            `<div class="signature-item" style="margin-bottom: 10px; padding: 5px 0;">
+              <strong>${sig.signerName}</strong> (${sig.signerRole}): 
+              ${sig.signedAt ? 'Signé le ' + sig.signedAt.toLocaleDateString('fr-FR') : 'En attente de signature'}
+            </div>`
+          ).join('')}
+        </div>` : ''}
+      `;
+      
+      // Styles pour le rendu PDF
       tempDiv.style.cssText = `
         position: fixed !important;
         top: -99999px !important;
         left: -99999px !important;
         width: 794px !important;
-        height: 1123px !important;
-        padding: 76px !important;
+        height: auto !important;
+        padding: 60px !important;
         margin: 0 !important;
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        transform: none !important;
         font-family: 'Times New Roman', serif !important;
         font-size: 12pt !important;
-        line-height: 1.4 !important;
+        line-height: 1.6 !important;
         color: #000 !important;
         background-color: #fff !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         z-index: -9999 !important;
-        pointer-events: none !important;
-        user-select: none !important;
-        opacity: 0 !important;
+        box-sizing: border-box !important;
       `;
       
-      window.document.body.appendChild(tempDiv);
+      document.body.appendChild(tempDiv);
       
       // Attendre que le DOM soit mis à jour
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Convertir en canvas
+      // Générer le PDF avec html2canvas + jsPDF
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF } = await import('jspdf');
+      
       const canvas = await html2canvas(tempDiv, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         width: 794,
-        height: 1123,
-        logging: false, // Désactiver les logs pour éviter le spam
-        removeContainer: true // Nettoyer automatiquement le conteneur
+        height: tempDiv.scrollHeight,
+        logging: false,
+        removeContainer: false
       });
       
       // Créer le PDF
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
       
-      // Calculer les dimensions pour s'adapter à la page A4
+      // Calculer les dimensions
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
       
-      // Ajuster l'image au format A4
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Calculer le ratio pour maintenir les proportions
+      const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
+      const finalWidth = (imgWidth * 0.264583) * ratio;
+      const finalHeight = (imgHeight * 0.264583) * ratio;
       
-      // Convertir le PDF en base64
+      // Ajouter l'image au PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight);
+      
+      // Stocker le PDF dans les métadonnées du document
       const pdfData = pdf.output('datauristring');
-      
-      // Stocker le PDF dans le document
       generatedDoc.metadata.pdfData = pdfData;
       
-      // Nettoyer immédiatement
-      if (tempDiv.parentNode) {
-        window.document.body.removeChild(tempDiv);
-      }
+      // Nettoyer l'élément temporaire
+      document.body.removeChild(tempDiv);
+      
+      console.log('PDF généré et stocké dans les métadonnées');
+      
     } catch (error) {
       console.error('Erreur lors de la génération PDF:', error);
-      // S'assurer que l'élément temporaire est supprimé même en cas d'erreur
-      const tempElements = window.document.querySelectorAll('[style*="position: fixed"][style*="-99999px"]');
+      
+      // Nettoyer en cas d'erreur
+      const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="-99999px"]');
       tempElements.forEach(el => el.remove());
+      
+      // Ne pas empêcher la sauvegarde du document en cas d'erreur PDF
+      console.warn('Le document sera sauvegardé sans PDF pré-généré');
     }
-    */
   };
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -273,82 +324,128 @@ const DocumentGenerator = () => {
   };
 
   const handleDownloadPDF = async (generatedDocToDownload: GeneratedDocument) => {
-    // PDF download functionality temporarily disabled
-    console.log('PDF download disabled for:', generatedDocToDownload.name);
-    /*
     try {
-      // Créer un élément temporaire avec le contenu du document
-      const tempDiv = window.document.createElement('div');
-      tempDiv.innerHTML = generatedDocToDownload.content;
+      console.log('Génération et téléchargement PDF pour:', generatedDocToDownload.name);
       
-      // Styles d'isolation complète pour éviter d'affecter le layout global
+      // Si des données PDF sont déjà stockées, les utiliser
+      if (generatedDocToDownload.metadata.pdfData) {
+        const link = document.createElement('a');
+        link.href = generatedDocToDownload.metadata.pdfData;
+        link.download = `${generatedDocToDownload.name}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log('PDF téléchargé depuis le cache');
+        
+        // Mettre à jour le statut du document en "downloaded"
+        await documentStorage.updateDocumentStatus(generatedDocToDownload.id, 'downloaded');
+        await loadDocuments();
+        
+        return;
+      }
+      
+      // Créer un élément temporaire pour le rendu HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = `
+        <div class="document-header" style="border-bottom: 2px solid #333; margin-bottom: 30px; padding-bottom: 15px; text-align: center;">
+          <div class="document-title" style="font-size: 18pt; font-weight: bold; margin-bottom: 10px; color: #333;">${generatedDocToDownload.name}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Type: ${generatedDocToDownload.type}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Statut: ${generatedDocToDownload.status}</div>
+          <div class="document-meta" style="font-size: 10pt; color: #666; margin-bottom: 5px;">Créé le: ${generatedDocToDownload.createdAt.toLocaleDateString('fr-FR')}</div>
+        </div>
+        <div class="document-content" style="margin: 30px 0; text-align: justify; line-height: 1.8;">
+          ${generatedDocToDownload.content}
+        </div>
+        ${generatedDocToDownload.signatures.length > 0 ? `
+        <div class="signature-section" style="margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px;">
+          <div class="signature-title" style="font-weight: bold; margin-bottom: 15px; font-size: 14pt;">Signatures :</div>
+          ${generatedDocToDownload.signatures.map(sig => 
+            `<div class="signature-item" style="margin-bottom: 10px; padding: 5px 0;">
+              <strong>${sig.signerName}</strong> (${sig.signerRole}): 
+              ${sig.signedAt ? 'Signé le ' + sig.signedAt.toLocaleDateString('fr-FR') : 'En attente de signature'}
+            </div>`
+          ).join('')}
+        </div>` : ''}
+      `;
+      
+      // Styles pour le rendu PDF
       tempDiv.style.cssText = `
         position: fixed !important;
         top: -99999px !important;
         left: -99999px !important;
         width: 794px !important;
-        height: 1123px !important;
-        padding: 76px !important;
+        height: auto !important;
+        padding: 60px !important;
         margin: 0 !important;
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        transform: none !important;
         font-family: 'Times New Roman', serif !important;
         font-size: 12pt !important;
-        line-height: 1.4 !important;
+        line-height: 1.6 !important;
         color: #000 !important;
         background-color: #fff !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         z-index: -9999 !important;
-        pointer-events: none !important;
-        user-select: none !important;
-        opacity: 0 !important;
+        box-sizing: border-box !important;
       `;
       
-      window.document.body.appendChild(tempDiv);
+      document.body.appendChild(tempDiv);
       
       // Attendre que le DOM soit mis à jour
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Convertir en canvas
+      // Générer le PDF avec html2canvas + jsPDF
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF } = await import('jspdf');
+      
       const canvas = await html2canvas(tempDiv, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         width: 794,
-        height: 1123,
+        height: tempDiv.scrollHeight,
         logging: false,
-        removeContainer: true
+        removeContainer: false
       });
       
       // Créer le PDF
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
       
-      // Calculer les dimensions pour s'adapter à la page A4
+      // Calculer les dimensions
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
       
-      // Ajuster l'image au format A4
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Calculer le ratio pour maintenir les proportions
+      const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
+      const finalWidth = (imgWidth * 0.264583) * ratio;
+      const finalHeight = (imgHeight * 0.264583) * ratio;
+      
+      // Ajouter l'image au PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight);
       
       // Télécharger le PDF
-      pdf.save(`${generatedDocToDownload.name}.pdf`);
+      const fileName = `${generatedDocToDownload.name}.pdf`.replace(/[^a-zA-Z0-9\-_\s]/g, '');
+      pdf.save(fileName);
       
-      // Nettoyer immédiatement
-      if (tempDiv.parentNode) {
-        window.document.body.removeChild(tempDiv);
-      }
+      // Nettoyer l'élément temporaire
+      document.body.removeChild(tempDiv);
+      
+      console.log('PDF généré et téléchargé avec succès:', fileName);
+      
+      // Mettre à jour le statut du document en "downloaded"
+      await documentStorage.updateDocumentStatus(generatedDocToDownload.id, 'downloaded');
+      await loadDocuments();
+      
     } catch (error) {
       console.error('Erreur lors de la génération PDF:', error);
-      // S'assurer que l'élément temporaire est supprimé même en cas d'erreur
-      const tempElements = window.document.querySelectorAll('[style*="position: fixed"][style*="-99999px"]');
+      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+      
+      // Nettoyer en cas d'erreur
+      const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="-99999px"]');
       tempElements.forEach(el => el.remove());
-      alert('Erreur lors de la génération du PDF');
     }
-    */
   };
 
   // Functions commented out to resolve compilation errors
@@ -361,7 +458,9 @@ const DocumentGenerator = () => {
       case 'received':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'sent':
-        return <Send className="h-4 w-4 text-green-600" />;
+        return <Send className="h-4 w-4 text-blue-600" />;
+      case 'downloaded':
+        return <FileDown className="h-4 w-4 text-purple-600" />;
       case 'draft':
         return <Edit className="h-4 w-4 text-gray-600" />;
       default:
@@ -375,6 +474,8 @@ const DocumentGenerator = () => {
         return 'Reçu';
       case 'sent':
         return 'Envoyé';
+      case 'downloaded':
+        return 'Téléchargé';
       case 'draft':
         return 'Brouillon';
       case 'archived':
@@ -427,13 +528,26 @@ const DocumentGenerator = () => {
     return matchesSearch && matchesType;
   });
 
-  // Temporary mock functions for compilation
-  const handleSendForSignature = (document: any) => {
-    console.log('Send for signature:', document);
-  };
-
-  const handleDuplicateDocument = (document: any) => {
-    console.log('Duplicate document:', document);
+  // Fonction pour envoyer un document par email
+  const handleSendForSignature = async (document: GeneratedDocument) => {
+    try {
+      // Créer un lien mailto avec le document en pièce jointe
+      const subject = encodeURIComponent(`Document: ${document.name}`);
+      const body = encodeURIComponent(`Veuillez trouver ci-joint le document "${document.name}" créé le ${document.createdAt.toLocaleDateString()}.`);
+      
+      // Ouvrir le client email par défaut
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      
+      console.log('Email client ouvert pour:', document.name);
+      
+      // Mettre à jour le statut du document en "sent"
+      await documentStorage.updateDocumentStatus(document.id, 'sent');
+      await loadDocuments();
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi:', error);
+      alert('Erreur lors de l\'ouverture du client email');
+    }
   };
 
   return (
@@ -504,28 +618,6 @@ const DocumentGenerator = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">En attente</p>
-                    <p className="text-2xl font-bold text-yellow-600">{documentStats.pending}</p>
-                  </div>
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Signés</p>
-                    <p className="text-2xl font-bold text-green-600">{documentStats.signed}</p>
-                  </div>
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -577,9 +669,11 @@ const DocumentGenerator = () => {
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="draft">Brouillons</option>
-                  <option value="sent">En attente</option>
-                  <option value="signed">Signés</option>
+                  <option value="sent">Envoyés</option>
+                  <option value="received">Reçus</option>
+                  <option value="downloaded">Téléchargés</option>
                   <option value="archived">Archivés</option>
+                  <option value="cancelled">Annulés</option>
                 </select>
               )}
               
@@ -598,18 +692,6 @@ const DocumentGenerator = () => {
               }
               {searchTerm && ` trouvé${(viewMode === 'templates' ? filteredTemplates.length : filteredDocuments.length) > 1 ? 's' : ''} pour "${searchTerm}"`}
             </p>
-            {viewMode === 'documents' && filteredDocuments.length > 0 && (
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <span className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  {documentStats.signed} signé{documentStats.signed > 1 ? 's' : ''}
-                </span>
-                <span className="flex items-center">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                  {documentStats.pending} en attente
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -796,11 +878,11 @@ const DocumentGenerator = () => {
                                 <Send className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => handleDuplicateDocument(document)}
-                                className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                                title="Dupliquer"
+                                onClick={() => handleEditDocument(document)}
+                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Modifier"
                               >
-                                <Copy className="h-4 w-4" />
+                                <Edit className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteDocument(document.id)}
@@ -858,8 +940,10 @@ const DocumentGenerator = () => {
             onCancel={() => {
               setShowDocumentForm(false);
               setSelectedTemplate(null);
+              setEditingDocument(null);
             }}
             isOpen={showDocumentForm}
+            initialData={editingDocument}
           />
         )}
 

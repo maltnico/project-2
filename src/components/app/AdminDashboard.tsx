@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Shield, 
   Users, 
   Database, 
   Activity, 
@@ -10,7 +9,6 @@ import {
   CheckCircle, 
   Clock, 
   TrendingUp, 
-  TrendingDown,
   Server,
   HardDrive,
   Cpu,
@@ -90,7 +88,7 @@ const AdminDashboard: React.FC = () => {
         if (usersCount !== null) mockStats.totalUsers = usersCount;
         if (propertiesCount !== null) mockStats.totalProperties = propertiesCount;
         if (activitiesCount !== null) mockStats.totalActivities = activitiesCount;
-      } catch (dbError) {
+      } catch {
         console.warn('Impossible de récupérer les vraies statistiques, utilisation des données de démonstration');
       }
 

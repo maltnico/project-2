@@ -7,7 +7,6 @@ import {
   ZoomOut, 
   RotateCw,
   Printer,
-  Share2,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -27,7 +26,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onClose,
   isOpen
 }) => {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Settings, 
-  DollarSign, 
   Bell, 
   Calendar, 
   Save,

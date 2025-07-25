@@ -8,8 +8,6 @@ import {
   Trash2, 
   X, 
   Save,
-  ArrowUp,
-  ArrowDown,
   AlertTriangle,
   CheckCircle,
   Loader2
@@ -425,7 +423,7 @@ const FinancialBudgets: React.FC = () => {
                   <div className="space-y-3">
                     {formData.categories
                       .filter(c => categories.find(cat => cat.id === c.categoryId)?.type === 'expense')
-                      .map((category, index) => (
+                      .map((category) => (
                         <div key={category.categoryId} className="grid grid-cols-12 gap-4 items-center">
                           <div className="col-span-6 flex items-center space-x-2">
                             <div 

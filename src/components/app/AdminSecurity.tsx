@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Shield, 
   Key, 
   Lock, 
-  Eye, 
-  EyeOff, 
   Save, 
   RefreshCw, 
   AlertTriangle, 
   CheckCircle, 
   Clock, 
-  Calendar, 
   User, 
   LogIn, 
   LogOut, 
@@ -18,8 +15,7 @@ import {
   Globe,
   Smartphone,
   Laptop,
-  Settings,
-  X
+  Settings
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { activityService } from '../../lib/activityService';
@@ -247,11 +243,7 @@ const AdminSecurity: React.FC = () => {
     }
   ];
 
-  useEffect(() => {
-    loadSecurityData();
-  }, []);
-
-  const loadSecurityData = async () => {
+  const loadSecurityData = useCallback(async () => {
     setLoading(true);
     try {
       // In a real application, you would fetch this data from your database
@@ -282,7 +274,11 @@ const AdminSecurity: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSecurityData();
+  }, [loadSecurityData]);
 
   const handleSaveSettings = async () => {
     setSaving(true);

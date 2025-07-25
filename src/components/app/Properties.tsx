@@ -4,13 +4,9 @@ import {
   Plus, 
   Search, 
   Filter,
-  Eye,
-  Edit,
-  Trash2,
   MapPin,
   Users,
   DollarSign,
-  Ruler,
   Grid3X3,
   List
 } from 'lucide-react';

@@ -64,8 +64,8 @@ const ensureUserProfile = async (userId: string): Promise<void> => {
     if (insertError) {
       throw insertError;
     }
-  } catch (error) {
-    console.error('Erreur lors de la création du profil utilisateur:', error);
+  } catch {
+    console.error('Erreur lors de la création du profil utilisateur');
     throw new Error('Impossible de créer le profil utilisateur. Veuillez vous reconnecter.');
   }
 };

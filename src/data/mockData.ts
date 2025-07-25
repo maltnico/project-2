@@ -1,4 +1,5 @@
-import { Property, Tenant, Document, FinancialFlow, Automation, Alert } from '../types';
+import { Property, Document, Automation, Alert } from '../types';
+import { FinancialFlow } from '../types/financial';
 
 export const mockProperties: Property[] = [
   {
@@ -6,7 +7,7 @@ export const mockProperties: Property[] = [
     name: 'Appartement Bastille',
     address: '15 rue de la Roquette, 75011 Paris',
     type: 'apartment',
-    status: 'occupied',
+    status: 'rented',
     rent: 1200,
     charges: 150,
     surface: 45,
@@ -16,12 +17,12 @@ export const mockProperties: Property[] = [
       firstName: 'Marie',
       lastName: 'Martin',
       email: 'marie.martin@email.com',
-      phone: '06 12 34 56 78',
+      phone: '0123456789',
       propertyId: '1',
       leaseStart: new Date('2023-09-01'),
       leaseEnd: new Date('2024-08-31'),
       rent: 1200,
-      deposit: 2400,
+      deposit: 1200,
       status: 'active',
       createdAt: new Date('2023-08-15')
     },
@@ -33,7 +34,7 @@ export const mockProperties: Property[] = [
     name: 'Studio Montmartre',
     address: '8 rue des Abbesses, 75018 Paris',
     type: 'studio',
-    status: 'vacant',
+    status: 'available',
     rent: 850,
     charges: 80,
     surface: 25,
@@ -46,7 +47,7 @@ export const mockProperties: Property[] = [
     name: 'Maison Vincennes',
     address: '42 avenue de Paris, 94300 Vincennes',
     type: 'house',
-    status: 'occupied',
+    status: 'rented',
     rent: 2200,
     charges: 200,
     surface: 120,
@@ -56,7 +57,7 @@ export const mockProperties: Property[] = [
       firstName: 'Pierre',
       lastName: 'Dubois',
       email: 'pierre.dubois@email.com',
-      phone: '06 98 76 54 32',
+      phone: '0987654321',
       propertyId: '3',
       leaseStart: new Date('2023-06-01'),
       leaseEnd: new Date('2026-05-31'),
@@ -65,8 +66,8 @@ export const mockProperties: Property[] = [
       status: 'active',
       createdAt: new Date('2023-05-15')
     },
-    createdAt: new Date('2022-12-01'),
-    updatedAt: new Date('2023-05-15')
+    createdAt: new Date('2023-02-20'),
+    updatedAt: new Date('2023-06-01')
   }
 ];
 
@@ -75,7 +76,7 @@ export const mockDocuments: Document[] = [
     id: '550e8400-e29b-41d4-a716-446655440011',
     name: 'Contrat de bail - Appartement Bastille',
     type: 'lease',
-    status: 'received',
+    status: 'signed',
     propertyId: '1',
     tenantId: '1',
     createdAt: new Date('2023-08-15'),
@@ -85,7 +86,7 @@ export const mockDocuments: Document[] = [
     id: '550e8400-e29b-41d4-a716-446655440012',
     name: 'État des lieux d\'entrée - Appartement Bastille',
     type: 'inventory',
-    status: 'received',
+    status: 'signed',
     propertyId: '1',
     tenantId: '1',
     createdAt: new Date('2023-08-20'),
@@ -93,9 +94,9 @@ export const mockDocuments: Document[] = [
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440013',
-    name: 'Quittance Novembre 2024',
+    name: 'Quittance de loyer - Novembre 2024',
     type: 'receipt',
-    status: 'received',
+    status: 'signed',
     propertyId: '1',
     tenantId: '1',
     createdAt: new Date('2024-11-01'),
@@ -103,12 +104,12 @@ export const mockDocuments: Document[] = [
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440014',
-    name: 'Attestation assurance habitation',
+    name: 'Assurance habitation',
     type: 'insurance',
-    status: 'draft',
+    status: 'pending',
     propertyId: '1',
     tenantId: '1',
-    createdAt: new Date('2024-12-01')
+    createdAt: new Date('2024-11-20')
   }
 ];
 
@@ -122,7 +123,9 @@ export const mockFinancialFlows: FinancialFlow[] = [
     date: new Date('2024-11-05'),
     propertyId: '1',
     recurring: true,
-    status: 'completed'
+    status: 'completed',
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date('2024-11-05')
   },
   {
     id: '2',
@@ -133,7 +136,9 @@ export const mockFinancialFlows: FinancialFlow[] = [
     date: new Date('2024-11-05'),
     propertyId: '1',
     recurring: true,
-    status: 'completed'
+    status: 'completed',
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date('2024-11-05')
   },
   {
     id: '3',
@@ -144,7 +149,9 @@ export const mockFinancialFlows: FinancialFlow[] = [
     date: new Date('2024-11-15'),
     propertyId: '2',
     recurring: false,
-    status: 'completed'
+    status: 'completed',
+    createdAt: new Date('2024-11-10'),
+    updatedAt: new Date('2024-11-15')
   },
   {
     id: '4',
@@ -154,7 +161,9 @@ export const mockFinancialFlows: FinancialFlow[] = [
     description: 'Assurance PNO annuelle',
     date: new Date('2024-12-01'),
     recurring: true,
-    status: 'pending'
+    status: 'pending',
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date('2024-11-01')
   }
 ];
 
@@ -162,59 +171,64 @@ export const mockAutomations: Automation[] = [
   {
     id: '1',
     name: 'Génération quittances mensuelles',
+    description: 'Génération automatique des quittances de loyer chaque mois',
     type: 'receipt',
     frequency: 'monthly',
     nextExecution: new Date('2024-12-05'),
     active: true,
-    propertyId: '1'
+    propertyId: '1',
+    createdAt: new Date('2023-09-01')
   },
   {
     id: '2',
     name: 'Révision loyer annuelle',
+    description: 'Révision automatique du loyer selon l\'index INSEE',
     type: 'rent_review',
     frequency: 'yearly',
     nextExecution: new Date('2024-09-01'),
     active: true,
-    propertyId: '1'
+    propertyId: '1',
+    createdAt: new Date('2023-09-01')
   },
   {
     id: '3',
     name: 'Rappel assurance habitation',
+    description: 'Rappel automatique pour le renouvellement de l\'assurance',
     type: 'insurance',
     frequency: 'yearly',
     nextExecution: new Date('2024-12-15'),
     active: true,
-    propertyId: '1'
+    propertyId: '1',
+    createdAt: new Date('2023-09-01')
   }
 ];
 
 export const mockAlerts: Alert[] = [
   {
     id: '1',
-    title: 'Assurance habitation à renouveler',
-    message: 'L\'assurance habitation de Marie Martin expire le 15 décembre 2024',
-    type: 'warning',
+    type: 'error',
+    title: 'Loyer en retard',
+    message: 'Le loyer de décembre n\'a pas été reçu',
     priority: 'high',
     read: false,
-    createdAt: new Date('2024-12-01'),
-    actionUrl: '/documents'
+    createdAt: new Date('2024-12-10')
   },
   {
     id: '2',
-    title: 'Nouveau locataire potentiel',
-    message: 'Une demande de visite a été reçue pour le Studio Montmartre',
-    type: 'info',
+    type: 'warning',
+    title: 'Révision annuelle',
+    message: 'Révision annuelle de la chaudière prévue',
     priority: 'medium',
     read: false,
-    createdAt: new Date('2024-11-28')
+    createdAt: new Date('2024-12-05')
   },
   {
     id: '3',
-    title: 'Quittance générée automatiquement',
-    message: 'La quittance de novembre 2024 a été générée et envoyée à Marie Martin',
-    type: 'success',
-    priority: 'low',
+    type: 'info',
+    title: 'Fin de bail',
+    message: 'Le bail se termine dans 3 mois',
+    priority: 'medium',
     read: true,
-    createdAt: new Date('2024-11-05')
+    createdAt: new Date('2024-11-15')
   }
 ];

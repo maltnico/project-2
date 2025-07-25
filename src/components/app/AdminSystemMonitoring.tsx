@@ -4,7 +4,6 @@ import {
   Cpu, 
   HardDrive, 
   Wifi, 
-  Server, 
   AlertTriangle, 
   CheckCircle, 
   RefreshCw,
@@ -13,8 +12,6 @@ import {
   Clock,
   Database,
   Users,
-  FileText,
-  Zap,
   BarChart3
 } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
@@ -54,7 +51,6 @@ const AdminSystemMonitoring: React.FC = () => {
   });
   
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(5000);
 
@@ -99,10 +95,8 @@ const AdminSystemMonitoring: React.FC = () => {
         return updated.slice(-20);
       });
       
-      setLoading(false);
     } catch (error) {
       console.error('Erreur lors du chargement des métriques:', error);
-      setLoading(false);
     }
   };
 

@@ -14,12 +14,12 @@ import {
   UserPlus,
   ArrowLeft
 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useEnhancedAuth } from '../hooks/useEnhancedAuth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signIn, signUp, resetPassword, loading } = useAuth();
+  const { signIn, signUp, resetPassword, loading } = useEnhancedAuth();
   
   // Déterminer le mode initial depuis les paramètres URL
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
@@ -32,7 +32,8 @@ const LoginPage = () => {
     firstName: '',
     lastName: '',
     companyName: '',
-    phone: ''
+    phone: '',
+    rememberMe: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,11 +45,18 @@ const LoginPage = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
     // Clear error when user starts typing
     if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -97,7 +105,7 @@ const LoginPage = () => {
     
     try {
       if (mode === 'login') {
-        await signIn(formData.email, formData.password);
+        await signIn(formData.email, formData.password, formData.rememberMe);
         navigate('/dashboard');
       } else if (mode === 'signup') {
         await signUp(formData.email, formData.password, {
@@ -137,14 +145,6 @@ const LoginPage = () => {
     }
   };
 
-  const demoLogin = () => {
-    setFormData({
-      ...formData,
-      email: 'test@example.com',
-      password: 'password123'
-    });
-  };
-
   const resetForm = () => {
     setFormData({
       email: '',
@@ -153,7 +153,8 @@ const LoginPage = () => {
       firstName: '',
       lastName: '',
       companyName: '',
-      phone: ''
+      phone: '',
+      rememberMe: false
     });
     setErrors({});
     setMessage(null);
@@ -165,11 +166,6 @@ const LoginPage = () => {
   };
 
   const features = [
-    {
-      icon: Shield,
-      title: 'Sécurité maximale',
-      description: 'Chiffrement TLS 1.2 et authentification JWT'
-    },
     {
       icon: FileText,
       title: '+50 documents',
@@ -238,24 +234,6 @@ const LoginPage = () => {
                 : 'bg-red-50 border border-red-200 text-red-800'
             }`}>
               <p className="text-sm font-medium">{message.text}</p>
-            </div>
-          )}
-
-          {/* Demo Login Button */}
-          {mode === 'login' && (
-            <div className="text-center">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-amber-800">
-                  <strong>Note :</strong> Pour tester l'application, créez un nouveau compte ou utilisez vos propres identifiants.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={demoLogin}
-                className="text-sm text-gray-600 hover:text-gray-700 font-medium border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Remplir avec des identifiants d'exemple
-              </button>
             </div>
           )}
 
@@ -479,12 +457,14 @@ const LoginPage = () => {
                 <div className="flex items-center">
                   <input
                     id="remember-me"
-                    name="remember-me"
+                    name="rememberMe"
                     type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={handleInputChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Se souvenir de moi
+                    Se souvenir de moi (30 jours)
                   </label>
                 </div>
                 <button
@@ -591,7 +571,7 @@ const LoginPage = () => {
 
           {/* Security Notice */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
               <Shield className="h-4 w-4 text-green-600" />
               <span>Connexion sécurisée - Données chiffrées et hébergées en France</span>
             </div>

@@ -55,6 +55,7 @@ export type DocumentStatus =
   | 'draft'
   | 'sent'
   | 'received'
+  | 'downloaded'
   | 'archived'
   | 'cancelled';
 

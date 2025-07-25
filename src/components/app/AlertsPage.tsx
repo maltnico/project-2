@@ -8,11 +8,9 @@ import {
   AlertTriangle, 
   Info, 
   AlertOctagon,
-  ExternalLink,
   Check,
   Trash2,
   EyeOff,
-  Clock,
   Calendar,
   ArrowRight,
   Loader2
@@ -28,7 +26,6 @@ const AlertsPage: React.FC = () => {
     notifications, 
     stats, 
     loading, 
-    error, 
     markAsRead, 
     markAllAsRead, 
     deleteNotification,
@@ -66,20 +63,6 @@ const AlertsPage: React.FC = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'Succès';
-      case 'warning':
-        return 'Avertissement';
-      case 'error':
-        return 'Erreur';
-      case 'info':
-        return 'Information';
-      default:
-        return type;
-    }
-  };
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {

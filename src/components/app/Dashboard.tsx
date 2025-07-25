@@ -135,16 +135,18 @@ const Dashboard = ({ setActiveTab }: { setActiveTab: (tab: string) => void }) =>
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         break;
-      case 'quarter':
+      case 'quarter': {
         const currentQuarter = Math.floor(now.getMonth() / 3);
         startDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
         endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59);
         break;
-      case 'semester':
+      }
+      case 'semester': {
         const currentSemester = Math.floor(now.getMonth() / 6);
         startDate = new Date(now.getFullYear(), currentSemester * 6, 1);
         endDate = new Date(now.getFullYear(), (currentSemester + 1) * 6, 0, 23, 59, 59);
         break;
+      }
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1);
         endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);

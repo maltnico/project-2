@@ -1,5 +1,4 @@
-import React from 'react';
-import { FileText, Mail, Phone, MapPin, Shield, BookOpen, Twitter, Linkedin, Facebook, Instagram, Youtube } from 'lucide-react';
+import { FileText, Mail, Phone, MapPin, Twitter, Linkedin, Facebook, Instagram, Youtube } from 'lucide-react';
 
 const Footer = () => {
   return (

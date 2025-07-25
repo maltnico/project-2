@@ -106,7 +106,7 @@ class AutomationService {
       console.log('Exécution de l\'automatisation:', automation.name);
 
       // Préparer les pièces jointes si un template de document est configuré
-      let attachments = [];
+      const attachments = [];
       
       if (automation.documentTemplateId) {
         try {
