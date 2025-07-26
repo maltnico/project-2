@@ -42,10 +42,11 @@ export const useAutomations = (): UseAutomationsReturn => {
   const createAutomation = async (automationData: Omit<Automation, 'id' | 'createdAt'>): Promise<Automation> => {
     try {
       setError(null);
-      const newAutomation = automationService.createAutomation(automationData);
+      const newAutomation = await automationService.createAutomation(automationData);
       setAutomations(prev => [newAutomation, ...prev]);
       return newAutomation;
     } catch (err) {
+      console.error('Erreur lors de la création de l\'automatisation:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors de la création de l\'automatisation');
       throw err;
     }
@@ -54,7 +55,10 @@ export const useAutomations = (): UseAutomationsReturn => {
   const updateAutomation = async (id: string, updates: Partial<Automation>): Promise<Automation> => {
     try {
       setError(null);
-      const updatedAutomation = automationService.updateAutomation(id, updates);
+      const updatedAutomation = await automationService.updateAutomation(id, updates);
+      if (!updatedAutomation) {
+        throw new Error('Automatisation non trouvée');
+      }
       setAutomations(prev => prev.map(a => a.id === id ? updatedAutomation : a));
       return updatedAutomation;
     } catch (err) {
@@ -66,7 +70,10 @@ export const useAutomations = (): UseAutomationsReturn => {
   const deleteAutomation = async (id: string): Promise<void> => {
     try {
       setError(null);
-      automationService.deleteAutomation(id);
+      const success = await automationService.deleteAutomation(id);
+      if (!success) {
+        throw new Error('Erreur lors de la suppression de l\'automatisation');
+      }
       setAutomations(prev => prev.filter(a => a.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression de l\'automatisation');
@@ -77,10 +84,13 @@ export const useAutomations = (): UseAutomationsReturn => {
   const toggleAutomation = async (id: string): Promise<Automation> => {
     try {
       setError(null);
-      const success = automationService.toggleAutomation(id);
-      const updatedAutomation = automationService.getById(id);
-      if (!success || !updatedAutomation) {
+      const success = await automationService.toggleAutomation(id);
+      if (!success) {
         throw new Error('Erreur lors de la modification de l\'automatisation');
+      }
+      const updatedAutomation = await automationService.getById(id);
+      if (!updatedAutomation) {
+        throw new Error('Automatisation non trouvée après mise à jour');
       }
       setAutomations(prev => prev.map(a => a.id === id ? updatedAutomation : a));
       return updatedAutomation;

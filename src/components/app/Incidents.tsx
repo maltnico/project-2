@@ -261,7 +261,7 @@ const Incidents = () => {
   const totalCost = incidents.reduce((sum, i) => sum + (i.actualCost || i.estimatedCost || 0), 0);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-8">
       {/* Enhanced Header with Statistics */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

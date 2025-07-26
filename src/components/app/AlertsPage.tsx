@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Bell, 
   Plus, 
@@ -133,21 +133,30 @@ const AlertsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Alertes</h1>
-          <p className="text-gray-600">Gérez vos alertes et notifications</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowAlertForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Créer une alerte</span>
-          </button>
+    <div className="space-y-8">
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+              <Bell className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Alertes</h1>
+              <p className="text-gray-600 mt-1">
+                Gérez vos alertes et notifications
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowAlertForm(true)}
+              className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 hover:scale-105"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Créer une alerte
+            </button>
+          </div>
         </div>
       </div>
 

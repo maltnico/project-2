@@ -1,103 +1,313 @@
+import { supabase } from './supabase';
 import { mailService } from './mailService';
 import { documentStorage } from './documentStorage';
 import { localEmailService } from './localEmailService';
 import { emailTemplateService } from './emailTemplateService';
+import { activityService } from './activityService';
+import { Automation } from '../types';
 
 class AutomationService {
-  private readonly STORAGE_KEY = 'automations';
-
-  private getAll(): Automation[] {
+  // Récupérer toutes les automatisations de l'utilisateur connecté
+  async getAll(): Promise<Automation[]> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) return [];
-      
-      const automations = JSON.parse(stored);
-      
-      // Convertir les chaînes de dates en objets Date
-      return automations.map((automation: any) => ({
-        ...automation,
-        nextExecution: automation.nextExecution ? new Date(automation.nextExecution) : null,
-        lastExecution: automation.lastExecution ? new Date(automation.lastExecution) : null,
-        createdAt: automation.createdAt ? new Date(automation.createdAt) : new Date(),
-        updatedAt: automation.updatedAt ? new Date(automation.updatedAt) : new Date()
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
+
+      const { data, error } = await supabase
+        .from('automations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Convertir les données de la base vers le format de l'application
+      return (data || []).map((automation: any) => ({
+        id: automation.id,
+        name: automation.name,
+        description: automation.description || '',
+        type: automation.type || 'receipt',
+        frequency: automation.frequency || 'monthly',
+        nextExecution: automation.next_execution ? new Date(automation.next_execution) : new Date(),
+        lastExecution: automation.last_execution ? new Date(automation.last_execution) : undefined,
+        active: automation.active ?? true,
+        propertyId: automation.property_id || undefined,
+        emailTemplateId: automation.email_template_id || undefined,
+        documentTemplateId: automation.document_template_id || undefined,
+        executionTime: automation.execution_time || '09:00',
+        createdAt: new Date(automation.created_at)
       }));
     } catch (error) {
       console.error('Erreur lors de la récupération des automatisations:', error);
-      return [];
+      throw error;
     }
   }
 
-  getAutomations(): Automation[] {
+  async getAutomations(): Promise<Automation[]> {
     return this.getAll();
   }
 
-  getActiveAutomations(): Automation[] {
-    return this.getAll().filter(automation => automation.active);
+  async getActiveAutomations(): Promise<Automation[]> {
+    const automations = await this.getAll();
+    return automations.filter(automation => automation.active);
   }
 
-  private getById(id: string): Automation | undefined {
-    const automations = this.getAll();
-    return automations.find(automation => automation.id === id);
-  }
+  async getById(id: string): Promise<Automation | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
 
-  createAutomation(automation: Omit<Automation, 'id' | 'createdAt' | 'updatedAt'>): Automation {
-    const newAutomation: Automation = {
-      ...automation,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      const { data, error } = await supabase
+        .from('automations')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
 
-    const automations = this.getAll();
-    automations.push(newAutomation);
-    this.saveAll(automations);
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
 
-    return newAutomation;
-  }
-
-  updateAutomation(id: string, updates: Partial<Automation>): Automation | null {
-    const automations = this.getAll();
-    const index = automations.findIndex(automation => automation.id === id);
-
-    if (index === -1) {
-      return null;
+      // Convertir les données de la base vers le format de l'application
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        type: data.type || 'receipt',
+        frequency: data.frequency || 'monthly',
+        nextExecution: data.next_execution ? new Date(data.next_execution) : new Date(),
+        lastExecution: data.last_execution ? new Date(data.last_execution) : undefined,
+        active: data.active ?? true,
+        propertyId: data.property_id || undefined,
+        emailTemplateId: data.email_template_id || undefined,
+        documentTemplateId: data.document_template_id || undefined,
+        executionTime: data.execution_time || '09:00',
+        createdAt: new Date(data.created_at)
+      };
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'automatisation:', error);
+      throw error;
     }
-
-    automations[index] = {
-      ...automations[index],
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    this.saveAll(automations);
-    return automations[index];
   }
 
-  deleteAutomation(id: string): boolean {
-    const automations = this.getAll();
-    const filteredAutomations = automations.filter(automation => automation.id !== id);
+  async createAutomation(automation: Omit<Automation, 'id' | 'createdAt'>): Promise<Automation> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
 
-    if (filteredAutomations.length === automations.length) {
+      // Convertir les données de l'application vers le format de la base
+      const automationData = {
+        user_id: user.id,
+        name: automation.name,
+        description: automation.description || null,
+        type: automation.type,
+        frequency: automation.frequency,
+        next_execution: automation.nextExecution?.toISOString(),
+        last_execution: automation.lastExecution?.toISOString() || null,
+        active: automation.active,
+        property_id: automation.propertyId || null,
+        email_template_id: automation.emailTemplateId || null,
+        document_template_id: automation.documentTemplateId || null,
+        execution_time: automation.executionTime || '09:00',
+        // Colonnes pour la compatibilité avec l'ancien système
+        trigger_type: 'scheduled',
+        action_type: 'email',
+        trigger_config: {},
+        action_config: {}
+      };
+
+      const { data, error } = await supabase
+        .from('automations')
+        .insert(automationData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur lors de la création de l\'automatisation:', error);
+        throw error;
+      }      // Enregistrer l'activité
+      try {
+        await activityService.addActivity({
+          type: 'automation',
+          action: 'created',
+          title: 'Automatisation créée',
+          description: `Automatisation "${data.name}" créée avec succès`,
+          userId: user.id,
+          priority: 'medium',
+          category: 'success',
+          entityId: data.id,
+          entityType: 'automation',
+          entityName: data.name,
+          metadata: { automationId: data.id }
+        });
+      } catch (activityError) {
+        console.warn('Erreur lors de l\'enregistrement de l\'activité:', activityError);
+      }
+
+      // Convertir vers le format de l'application
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        type: data.type,
+        frequency: data.frequency,
+        nextExecution: new Date(data.next_execution),
+        lastExecution: data.last_execution ? new Date(data.last_execution) : undefined,
+        active: data.active,
+        propertyId: data.property_id || undefined,
+        emailTemplateId: data.email_template_id || undefined,
+        documentTemplateId: data.document_template_id || undefined,
+        executionTime: data.execution_time,
+        createdAt: new Date(data.created_at)
+      };
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'automatisation:', error);
+      throw error;
+    }
+  }
+
+  async updateAutomation(id: string, updates: Partial<Automation>): Promise<Automation | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
+
+      // Convertir les mises à jour vers le format de la base
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.frequency !== undefined) updateData.frequency = updates.frequency;
+      if (updates.nextExecution !== undefined) updateData.next_execution = updates.nextExecution?.toISOString();
+      if (updates.lastExecution !== undefined) updateData.last_execution = updates.lastExecution?.toISOString();
+      if (updates.active !== undefined) updateData.active = updates.active;
+      if (updates.propertyId !== undefined) updateData.property_id = updates.propertyId;
+      if (updates.emailTemplateId !== undefined) updateData.email_template_id = updates.emailTemplateId;
+      if (updates.documentTemplateId !== undefined) updateData.document_template_id = updates.documentTemplateId;
+      if (updates.executionTime !== undefined) updateData.execution_time = updates.executionTime;
+
+      const { data, error } = await supabase
+        .from('automations')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Enregistrer l'activité
+      try {
+        await activityService.addActivity({
+          type: 'automation',
+          action: 'updated',
+          title: 'Automatisation modifiée',
+          description: `Automatisation "${data.name}" modifiée avec succès`,
+          userId: user.id,
+          priority: 'medium',
+          category: 'success',
+          entityId: id,
+          entityType: 'automation',
+          entityName: data.name,
+          metadata: { automationId: id }
+        });
+      } catch (activityError) {
+        console.warn('Erreur lors de l\'enregistrement de l\'activité:', activityError);
+      }
+
+      // Convertir vers le format de l'application
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        type: data.type,
+        frequency: data.frequency,
+        nextExecution: new Date(data.next_execution),
+        lastExecution: data.last_execution ? new Date(data.last_execution) : undefined,
+        active: data.active,
+        propertyId: data.property_id || undefined,
+        emailTemplateId: data.email_template_id || undefined,
+        documentTemplateId: data.document_template_id || undefined,
+        executionTime: data.execution_time,
+        createdAt: new Date(data.created_at)
+      };
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'automatisation:', error);
+      throw error;
+    }
+  }
+
+  async deleteAutomation(id: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
+
+      // Récupérer d'abord l'automatisation pour l'activité
+      const automation = await this.getById(id);
+
+      const { error } = await supabase
+        .from('automations')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Enregistrer l'activité
+      if (automation) {
+        try {
+          await activityService.addActivity({
+            type: 'automation',
+            action: 'deleted',
+            title: 'Automatisation supprimée',
+            description: `Automatisation "${automation.name}" supprimée avec succès`,
+            userId: user.id,
+            priority: 'medium',
+            category: 'success',
+            entityId: id,
+            entityType: 'automation',
+            entityName: automation.name,
+            metadata: { automationId: id }
+          });
+        } catch (activityError) {
+          console.warn('Erreur lors de l\'enregistrement de l\'activité:', activityError);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'automatisation:', error);
       return false;
     }
-
-    this.saveAll(filteredAutomations);
-    return true;
   }
 
-  toggleAutomation(id: string): boolean {
-    const automation = this.getById(id);
-    if (!automation) {
+  async toggleAutomation(id: string): Promise<boolean> {
+    try {
+      const automation = await this.getById(id);
+      if (!automation) return false;
+
+      const updated = await this.updateAutomation(id, { active: !automation.active });
+      return updated !== null;
+    } catch (error) {
+      console.error('Erreur lors du basculement de l\'automatisation:', error);
       return false;
     }
-
-    this.updateAutomation(id, { active: !automation.active });
-    return true;
   }
 
   async executeAutomation(id: string): Promise<boolean> {
     try {
-      const automation = this.getById(id);
+      const automation = await this.getById(id);
       if (!automation || !automation.active) {
         console.log('Automatisation non trouvée ou inactive:', id);
         return false;
@@ -206,7 +416,7 @@ class AutomationService {
       }
 
       // Déterminer le destinataire (utiliser le locataire si disponible)
-      const recipient = emailData.tenant_email || 'destinataire@example.com';
+      const recipient = (emailData as any).tenant_email || 'destinataire@example.com';
 
       // Créer les options d'email
       const emailOptions = {
@@ -232,7 +442,7 @@ class AutomationService {
       }
 
       // Mettre à jour la date de dernière exécution
-      this.updateAutomation(id, {
+      await this.updateAutomation(id, {
         lastExecution: new Date(),
         nextExecution: new Date(this.calculateNextExecution(automation.frequency))
       });
@@ -248,7 +458,7 @@ class AutomationService {
   async executeAllDueAutomations(): Promise<number> {
     try {
       const now = new Date();
-      const dueAutomations = this.getActiveAutomations().filter(
+      const dueAutomations = (await this.getActiveAutomations()).filter(
         automation => automation.nextExecution <= now
       );
       
@@ -302,31 +512,7 @@ class AutomationService {
 
     return now.toISOString();
   }
-
-  private saveAll(automations: Automation[]): void {
-    try {
-      const automationsToSave = automations.map(automation => ({
-        ...automation,
-        nextExecution: automation.nextExecution instanceof Date 
-          ? automation.nextExecution.toISOString() 
-          : automation.nextExecution,
-        lastExecution: automation.lastExecution instanceof Date 
-          ? automation.lastExecution.toISOString() 
-          : automation.lastExecution,
-        createdAt: automation.createdAt instanceof Date 
-          ? automation.createdAt.toISOString() 
-          : automation.createdAt,
-        updatedAt: automation.updatedAt instanceof Date 
-          ? automation.updatedAt.toISOString() 
-          : automation.updatedAt
-      }));
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(automationsToSave));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des automatisations:', error);
-      throw error;
-    }
-  }
 }
 
+// Créer une instance singleton
 export const automationService = new AutomationService();

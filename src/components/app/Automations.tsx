@@ -140,6 +140,8 @@ const Automations = () => {
       setEditingAutomation(null);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
+      // Afficher l'erreur à l'utilisateur
+      alert(`Erreur lors de la sauvegarde: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   };
 

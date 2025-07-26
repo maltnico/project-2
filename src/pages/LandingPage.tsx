@@ -1,10 +1,11 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
-import Features from '../components/Features';
-import Pricing from '../components/Pricing';
-import CTA from '../components/CTA';
+import KeyBenefits from '../components/KeyBenefits';
+import Testimonials from '../components/Testimonials';
+import PricingComparison from '../components/PricingComparison';
+import FAQ from '../components/FAQ';
+import FinalCTA from '../components/FinalCTA';
 import Footer from '../components/Footer';
 
 const LandingPage = () => {
@@ -28,15 +29,11 @@ const LandingPage = () => {
         onLoginClick={handleLoginClick}
         onSignupClick={handleSignupClick}
       />
-      <Features />
-      <Pricing 
-        onLoginClick={handleLoginClick}
-        onSignupClick={handleSignupClick}
-      />
-      <CTA 
-        onLoginClick={handleLoginClick}
-        onSignupClick={handleSignupClick}
-      />
+      <KeyBenefits />
+      <Testimonials />
+      <PricingComparison />
+      <FAQ />
+      <FinalCTA />
       <Footer />
     </div>
   );

@@ -10,7 +10,6 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
-  Search,
   Book,
   Video,
   Download,
@@ -647,11 +646,22 @@ const Support = () => {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Support & Aide</h1>
-        <p className="text-gray-600">Trouvez de l'aide et contactez notre équipe support</p>
+    <div className="space-y-8">
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+              <HelpCircle className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Support & Aide</h1>
+              <p className="text-gray-600 mt-1">
+                Trouvez de l'aide et contactez notre équipe support
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Plus, Search, Filter, Edit, Trash2, Copy, Send } from 'lucide-react';
 import { emailTemplateService, EmailTemplate } from '../../lib/emailTemplateService';
 import EmailTemplateEditor from './EmailTemplateEditor';
@@ -139,24 +139,29 @@ const EmailTemplates = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Mail className="mr-3 text-blue-600" />
-            Templates Email
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Gérez vos modèles d'emails pour automatiser vos communications
-          </p>
+    <div className="space-y-8">
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+              <Mail className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Templates Email</h1>
+              <p className="text-gray-600 mt-1">
+                Gérez vos modèles d'emails pour automatiser vos communications
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleCreateTemplate}
+            className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 hover:scale-105"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Nouveau Template
+          </button>
         </div>
-        <button
-          onClick={handleCreateTemplate}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nouveau Template
-        </button>
       </div>
 
       {/* Filters */}
