@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { 
   DollarSign, 
-  TrendingUp, 
-  TrendingDown,
   Calendar,
   Download, 
   PieChart,
-  BarChart3,
-  ArrowUp,
-  ArrowDown,
   Plus,
   Zap,
   Clock,
@@ -16,7 +11,7 @@ import {
   Building
 } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Pie, Line } from 'react-chartjs-2';
 import { FinancialDashboardData, FinancialStats } from '../../types/financial';
 
 // Enregistrer les composants Chart.js nécessaires
@@ -75,11 +70,6 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       currency: 'EUR',
       minimumFractionDigits: 2
     }).format(amount);
-  };
-
-  const getPercentageChange = (current: number, previous: number) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
   };
 
   if (!dashboardData || !stats) {
@@ -148,105 +138,6 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                 <option value="income">Revenus</option>
                 <option value="expense">Dépenses</option>
               </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Revenus totaux</p>
-              <p className="text-3xl font-bold text-green-600">{formatCurrency(dashboardData.totalIncome)}</p>
-              {stats.currentMonth.income !== 0 && stats.previousMonth.income !== 0 && (
-                <div className="flex items-center mt-1">
-                  {stats.currentMonth.income > stats.previousMonth.income ? (
-                    <>
-                      <ArrowUp className="h-3 w-3 text-green-600 mr-1" />
-                      <span className="text-sm text-green-600">
-                        +{getPercentageChange(stats.currentMonth.income, stats.previousMonth.income).toFixed(1)}%
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowDown className="h-3 w-3 text-red-600 mr-1" />
-                      <span className="text-sm text-red-600">
-                        {getPercentageChange(stats.currentMonth.income, stats.previousMonth.income).toFixed(1)}%
-                      </span>
-                    </>
-                  )}
-                  <span className="text-xs text-gray-500 ml-1">vs mois précédent</span>
-                </div>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Dépenses totales</p>
-              <p className="text-3xl font-bold text-red-600">{formatCurrency(dashboardData.totalExpense)}</p>
-              {stats.currentMonth.expense !== 0 && stats.previousMonth.expense !== 0 && (
-                <div className="flex items-center mt-1">
-                  {stats.currentMonth.expense < stats.previousMonth.expense ? (
-                    <>
-                      <ArrowDown className="h-3 w-3 text-green-600 mr-1" />
-                      <span className="text-sm text-green-600">
-                        -{Math.abs(getPercentageChange(stats.currentMonth.expense, stats.previousMonth.expense)).toFixed(1)}%
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUp className="h-3 w-3 text-red-600 mr-1" />
-                      <span className="text-sm text-red-600">
-                        +{getPercentageChange(stats.currentMonth.expense, stats.previousMonth.expense).toFixed(1)}%
-                      </span>
-                    </>
-                  )}
-                  <span className="text-xs text-gray-500 ml-1">vs mois précédent</span>
-                </div>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <TrendingDown className="h-6 w-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Résultat net</p>
-              <p className={`text-3xl font-bold ${dashboardData.netIncome >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                {formatCurrency(dashboardData.netIncome)}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Marge: {dashboardData.totalIncome > 0 
-                  ? ((dashboardData.netIncome / dashboardData.totalIncome) * 100).toFixed(1)
-                  : '0'}%
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">En attente</p>
-              <p className="text-3xl font-bold text-yellow-600">{formatCurrency(dashboardData.pendingAmount)}</p>
-              <p className="text-sm text-gray-500 mt-1">À recevoir/payer</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
         </div>
@@ -656,13 +547,5 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     </div>
   );
 };
-
-// Composant flèche horizontale
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12"></line>
-    <polyline points="12 5 19 12 12 19"></polyline>
-  </svg>
-);
 
 export default FinancialDashboard;

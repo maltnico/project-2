@@ -9,9 +9,12 @@ import {
   CheckCircle,
   ExternalLink,
   Loader,
-  Calendar
+  Calendar,
+  Database
 } from 'lucide-react';
 import { bankingService } from '../../lib/bankingService';
+import BankingSync from './BankingSync';
+import BankingConnectionTest from './BankingConnectionTest';
 import type { BankConnection, BankInstitution, SyncResult } from '../../types/banking';
 
 const BankConnections: React.FC = () => {
@@ -24,6 +27,7 @@ const BankConnections: React.FC = () => {
   const [showAddBank, setShowAddBank] = useState(false);
   const [selectedInstitution, setSelectedInstitution] = useState<string>('');
   const [connecting, setConnecting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'connections' | 'sync' | 'test'>('connections');
 
   useEffect(() => {
     loadData();
@@ -34,9 +38,15 @@ const BankConnections: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      // Initialiser le service bancaire s'il n'est pas configuré
       if (!bankingService.isConfigured()) {
-        setError('Le service bancaire n\'est pas configuré. Veuillez configurer vos clés API GoCardless.');
-        return;
+        try {
+          await bankingService.initialize();
+        } catch (initError) {
+          setError('Erreur lors de l\'initialisation du service bancaire. Vérifiez votre connexion internet.');
+          console.error('Erreur initialisation service bancaire:', initError);
+          return;
+        }
       }
 
       const [connectionsData, institutionsData] = await Promise.all([
@@ -156,32 +166,79 @@ const BankConnections: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Comptes bancaires</h2>
-          <p className="text-gray-600">Gérez vos connexions bancaires et synchronisez vos transactions</p>
+      {/* En-tête avec onglets */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Comptes bancaires</h2>
+            <p className="text-gray-600">Gérez vos connexions bancaires et synchronisez vos transactions</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => handleSync()}
+              disabled={syncing || connections.length === 0}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+            >
+              {syncing ? (
+                <Loader className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span>Synchroniser tout</span>
+            </button>
+            <button
+              onClick={() => setShowAddBank(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Ajouter une banque</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => handleSync()}
-            disabled={syncing || connections.length === 0}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
-          >
-            {syncing ? (
-              <Loader className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            <span>Synchroniser tout</span>
-          </button>
-          <button
-            onClick={() => setShowAddBank(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Ajouter une banque</span>
-          </button>
+
+        {/* Onglets */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('connections')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'connections'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Connexions bancaires
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('sync')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'sync'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Synchronisation
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('test')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'test'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Test API
+              </div>
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -204,26 +261,29 @@ const BankConnections: React.FC = () => {
         </div>
       )}
 
-      {/* Liste des connexions */}
-      {connections.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun compte bancaire connecté</h3>
-          <p className="text-gray-600 mb-6">
-            Connectez vos comptes bancaires pour importer automatiquement vos transactions
-          </p>
-          <button
-            onClick={() => setShowAddBank(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Connecter ma première banque
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {connections.map((connection) => (
-            <div key={connection.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              {/* En-tête de la connexion */}
+      {/* Contenu selon l'onglet actif */}
+      {activeTab === 'connections' ? (
+        <>
+          {/* Liste des connexions */}
+          {connections.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun compte bancaire connecté</h3>
+              <p className="text-gray-600 mb-6">
+                Connectez vos comptes bancaires pour importer automatiquement vos transactions
+              </p>
+              <button
+                onClick={() => setShowAddBank(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Ajouter votre première banque</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {connections.map((connection) => (
+                <div key={connection.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">{/* En-tête de la connexion */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -309,6 +369,12 @@ const BankConnections: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+        </>
+      ) : activeTab === 'sync' ? (
+        <BankingSync />
+      ) : (
+        <BankingConnectionTest />
       )}
 
       {/* Modal d'ajout de banque */}

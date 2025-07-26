@@ -33,7 +33,6 @@ import FinancialReports from './FinancialReports';
 import FinancialBudgets from './FinancialBudgets';
 import FinancialSettings from './FinancialSettings';
 import FinancialTaxes from './FinancialTaxes';
-import BankingConfiguration from './BankingConfiguration';
 import BankConnections from './BankConnections';
 
 const Finances = () => {
@@ -67,9 +66,6 @@ const Finances = () => {
   const [editingFlow, setEditingFlow] = useState<FinancialFlow | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<FinancialFlow | null>(null);
   const [showFlowDetails, setShowFlowDetails] = useState(false);
-  
-  // Banking states
-  const [bankingView, setBankingView] = useState('connections');
 
   // Function to handle date range changes
   const handleDateRangeChange = (period: 'month' | 'quarter' | 'year' | 'custom') => {
@@ -751,43 +747,7 @@ const Finances = () => {
   const renderBankingTab = () => {
     return (
       <div className="space-y-6">
-        {/* Sous-navigation */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setBankingView('connections')}
-                className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
-                  bankingView === 'connections'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Building className="h-4 w-4" />
-                <span>Mes Banques</span>
-              </button>
-              <button
-                onClick={() => setBankingView('config')}
-                className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
-                  bankingView === 'config'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Settings className="h-4 w-4" />
-                <span>Configuration</span>
-              </button>
-            </nav>
-          </div>
-          
-          <div className="p-6">
-            {bankingView === 'connections' ? (
-              <BankConnections />
-            ) : (
-              <BankingConfiguration />
-            )}
-          </div>
-        </div>
+        <BankConnections />
       </div>
     );
   };
