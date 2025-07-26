@@ -318,36 +318,134 @@ class AutomationService {
       // Préparer les pièces jointes si un template de document est configuré
       const attachments = [];
       
-      if (automation.documentTemplateId) {
+      // Détermine l'ID du template de document à utiliser
+      let documentTemplateId = automation.documentTemplateId;
+      
+      // Si c'est une automatisation de type "receipt" (génération de quittances) 
+      // et qu'aucun document n'est sélectionné, utiliser le modèle de quittance par défaut
+      if (automation.type === 'receipt' && !documentTemplateId) {
+        documentTemplateId = '550e8400-e29b-41d4-a716-446655440003'; // ID du modèle de quittance de loyer
+        console.log('Automatisation de quittance sans document configuré, utilisation du modèle par défaut');
+        console.log('Template ID utilisé:', documentTemplateId);
+      }
+      
+      if (documentTemplateId) {
         try {
-          console.log('Récupération du document pour l\'automatisation...');
+          console.log('Génération et stockage du document pour l\'automatisation...');
           
-          // Récupérer le document
-          const document = await documentStorage.getDocument(automation.documentTemplateId);
-          if (!document) {
-            console.warn(`Document non trouvé: ${automation.documentTemplateId}. L'automatisation continuera sans pièce jointe.`);
-            // Continue without attachment instead of throwing error
+          // Importer les services nécessaires
+          const { documentGenerator } = await import('./documentGenerator');
+          
+          // Préparer les données pour la génération du document
+          let documentData = {};
+          let tenantInfo = null;
+          
+          // Si un bien est associé, récupérer ses informations pour le document
+          if (automation.propertyId) {
+            try {
+              const { propertiesApi } = await import('./properties');
+              const property = await propertiesApi.getProperty(automation.propertyId);
+              
+              if (property) {
+                documentData = {
+                  property_name: property.name,
+                  property_address: property.address,
+                  property_type: property.type,
+                  rent_amount: property.rent.toString(),
+                  charges_amount: property.charges.toString(),
+                  total_amount: (property.rent + property.charges).toString()
+                };
+                
+                if (property.tenant) {
+                  tenantInfo = property.tenant;
+                  documentData = {
+                    ...documentData,
+                    tenant_name: `${property.tenant.firstName} ${property.tenant.lastName}`,
+                    tenant_email: property.tenant.email,
+                    tenant_phone: property.tenant.phone || '',
+                    lease_start_date: property.tenant.leaseStart.toLocaleDateString(),
+                    lease_end_date: property.tenant.leaseEnd.toLocaleDateString()
+                  };
+                }
+              }
+            } catch (propertyError) {
+              console.warn('Erreur lors de la récupération du bien pour le document:', propertyError);
+            }
           }
           
-          // Only process document if it exists
-          if (document) {
-            // Utiliser le PDF pré-généré s'il existe
-            if (document.metadata && document.metadata.pdfData) {
-              const pdfContent = document.metadata.pdfData.split(',')[1];
-              
+          // Ajouter la date actuelle et informations contextuelles
+          const now = new Date();
+          const baseData = documentData as any; // Conversion pour accéder aux propriétés
+          documentData = {
+            ...documentData,
+            current_date: now.toLocaleDateString(),
+            month: now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            landlord_name: 'Propriétaire',
+            // Variables pour le template de quittance
+            tenantName: baseData.tenant_name || 'Locataire',
+            landlordName: 'Propriétaire',
+            landlordAddress: 'Adresse du propriétaire',
+            propertyAddress: baseData.property_address || 'Adresse du bien',
+            rent: baseData.rent_amount || '0',
+            charges: baseData.charges_amount || '0',
+            total: baseData.total_amount || '0',
+            period: now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            paymentDate: now.toLocaleDateString(),
+            documentDate: now.toLocaleDateString()
+          };
+          
+          // Générer le document complet
+          const generatedDocument = await documentGenerator.generateDocument({
+            templateId: documentTemplateId,
+            data: documentData,
+            propertyId: automation.propertyId,
+            tenantId: tenantInfo?.id
+          });
+          
+          if (generatedDocument) {
+            // Personnaliser le nom du document avec les informations contextuelles
+            const customName = `${generatedDocument.name.split(' - ')[0]}_${tenantInfo ? tenantInfo.firstName + '_' + tenantInfo.lastName : 'Automatisation'}_${now.toISOString().split('T')[0]}`;
+            
+            // Mettre à jour le document avec des métadonnées d'automatisation
+            const updatedDocument = {
+              ...generatedDocument,
+              name: customName,
+              metadata: {
+                ...generatedDocument.metadata,
+                automationId: automation.id,
+                propertyId: automation.propertyId,
+                tenantId: tenantInfo?.id,
+                generatedAt: now.toISOString(),
+                automationName: automation.name
+              }
+            };
+            
+            // Stocker le document mis à jour
+            console.log('Sauvegarde du document généré:', updatedDocument.name);
+            await documentStorage.saveDocument(updatedDocument);
+            console.log(`Document généré et stocké avec succès: ${updatedDocument.id}`);
+            
+            // Générer le PDF pour l'email
+            const pdfContent = await documentGenerator.generatePDF(documentTemplateId, documentData);
+            
+            if (pdfContent) {
+              // Ajouter le document aux pièces jointes de l'email
               attachments.push({
-                filename: `${document.name}.pdf`,
+                filename: `${updatedDocument.name}.pdf`,
                 content: pdfContent,
                 contentType: 'application/pdf',
                 encoding: 'base64'
               });
-              console.log('Document PDF ajouté en pièce jointe');
+              
+              console.log('Document PDF généré, stocké et ajouté en pièce jointe');
             } else {
-              console.warn(`Pas de PDF disponible pour le document ${document.id}`);
+              console.warn(`Impossible de générer le PDF pour le document ${updatedDocument.id}`);
             }
+          } else {
+            console.warn(`Impossible de générer le document pour le template ${documentTemplateId}`);
           }
         } catch (docError) {
-          console.warn('Erreur lors de la récupération du document:', docError);
+          console.warn('Erreur lors de la génération/stockage du document:', docError);
           // Continuer sans pièce jointe au lieu d'échouer toute l'automatisation
         }
       }
@@ -405,7 +503,7 @@ class AutomationService {
       
       if (automation.emailTemplateId) {
         try {
-          const processedTemplate = emailTemplateService.processTemplate(automation.emailTemplateId, emailData);
+          const processedTemplate = await emailTemplateService.processTemplate(automation.emailTemplateId, emailData);
           if (processedTemplate) {
             emailSubject = processedTemplate.subject;
             emailContent = processedTemplate.content;
@@ -429,7 +527,8 @@ class AutomationService {
       // Essayer d'envoyer l'email via le service mail
       try {
         // Vérifier si le service mail est configuré
-        if (mailService.getConfig()?.enabled) {
+        const isConfigured = await mailService.isConfigured();
+        if (isConfigured) {
           await mailService.sendEmail(emailOptions);
         } else {
           // Sinon, utiliser le service local

@@ -933,7 +933,6 @@ const DocumentGenerator = () => {
         {showDocumentForm && selectedTemplate && (
           <DocumentForm
             template={selectedTemplate}
-            userId={'current-user'}
             properties={properties}
             tenants={tenants}
             onSave={handleDocumentSaved}

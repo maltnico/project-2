@@ -408,7 +408,7 @@ class EmailTemplateService {
   }
 
   // Traiter un template avec des données
-  processTemplate(templateId: string, data: Record<string, any>): { subject: string, content: string } | null {
+  async processTemplate(templateId: string, data: Record<string, any>): Promise<{ subject: string, content: string } | null> {
     try {
       if (!templateId) {
         console.error('Erreur: templateId est undefined ou null');
@@ -418,16 +418,24 @@ class EmailTemplateService {
       // Chercher le template
       let template = this.templates.find(t => t.id === templateId);
       
-      // Si le template n'est pas trouvé dans le cache, essayer de le charger
+      // Si le template n'est pas trouvé dans le cache, essayer de le charger depuis Supabase
       if (!template) {
-        console.warn(`Template ${templateId} non trouvé dans le cache, tentative de chargement...`);
+        console.warn(`Template ${templateId} non trouvé dans le cache, chargement depuis Supabase...`);
         
-        // Essayer de charger le template depuis le localStorage (fallback)
-        const localTemplates = this.getTemplatesFromLocalStorage();
-        template = localTemplates.find(t => t.id === templateId);
+        try {
+          // Charger le template depuis Supabase
+          const foundTemplate = await this.getTemplateById(templateId);
+          template = foundTemplate || undefined;
+        } catch (supabaseError) {
+          console.warn('Erreur lors du chargement depuis Supabase:', supabaseError);
+          
+          // Essayer de charger le template depuis le localStorage (fallback)
+          const localTemplates = this.getTemplatesFromLocalStorage();
+          template = localTemplates.find(t => t.id === templateId);
+        }
         
         if (!template) {
-          console.error(`Template ${templateId} introuvable dans le cache et le localStorage`);
+          console.error(`Template ${templateId} introuvable dans Supabase, le cache et le localStorage`);
           return null;
         }
       }
@@ -526,7 +534,7 @@ class EmailTemplateService {
       }
       
       // Traiter le template
-      processed = this.processTemplate(templateId, data);
+      processed = await this.processTemplate(templateId, data);
       if (!processed) {
         return { 
           success: false, 

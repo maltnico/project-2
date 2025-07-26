@@ -1,4 +1,23 @@
+import React, { useState } from 'react';
+import DocumentGenerator from '../components/app/DocumentGenerator';
+
 const DocumentsPage = () => {
+  const [showDocumentGenerator, setShowDocumentGenerator] = useState(false);
+
+  // Si DocumentGenerator est ouvert, l'afficher
+  if (showDocumentGenerator) {
+    return <DocumentGenerator />;
+  }
+
+  const handleCardClick = (documentTitle: string) => {
+    if (documentTitle === "Document envoyé") {
+      setShowDocumentGenerator(true);
+    } else {
+      // Pour les autres cartes, vous pouvez ajouter d'autres actions
+      console.log(`Clic sur: ${documentTitle}`);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Enhanced Header with Icon */}

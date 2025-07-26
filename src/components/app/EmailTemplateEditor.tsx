@@ -47,6 +47,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  const [isMailConfigured, setIsMailConfigured] = useState(false);
   
   // État pour l'upload de fichier
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -54,8 +55,6 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   // État pour l'upload de fichier
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  
-  const [editorKey, setEditorKey] = useState<number>(Date.now());
   
   // État pour les documents disponibles
   const [availableDocuments, setAvailableDocuments] = useState<GeneratedDocument[]>([]);
@@ -66,6 +65,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     subject: initialTemplate?.subject || '',
     content: initialTemplate?.content || '',
     category: initialTemplate?.category || 'other',
+    type: initialTemplate?.type || 'html',
     documentTemplateId: initialTemplate?.documentTemplateId
   });
 
@@ -85,8 +85,20 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     }
   };
 
+  // Vérifier la configuration du service mail
+  const checkMailConfiguration = async () => {
+    try {
+      const configured = await mailService.isConfigured();
+      setIsMailConfigured(configured);
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la configuration mail:', error);
+      setIsMailConfigured(false);
+    }
+  };
+
   useEffect(() => {
     loadTemplates();
+    checkMailConfiguration();
   }, [isOpen]);
   
   // Charger les documents disponibles
@@ -123,6 +135,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
         subject: initialTemplate.subject,
         content: initialTemplate.content,
         category: initialTemplate.category,
+        type: initialTemplate.type,
         documentTemplateId: initialTemplate.documentTemplateId
       });
       setIsEditing(true);
@@ -224,7 +237,6 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
         ...prev,
         content: fileContent
       }));
-      setEditorKey(Date.now()); // Force editor to re-render with new content
       
       // Try to extract subject from HTML title if not set
       if (!formData.subject) {
@@ -253,7 +265,8 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       name: '',
       subject: '',
       content: defaultHTMLTemplate,
-      category: 'other'
+      category: 'other',
+      type: 'html'
     });
     setIsEditing(true);
     setShowPreview(false);
@@ -265,7 +278,8 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       name: template.name,
       subject: template.subject,
       content: template.content,
-      category: template.category
+      category: template.category,
+      type: template.type
     });
     setIsEditing(true);
     setShowPreview(false);
@@ -277,7 +291,8 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       name: template.name,
       subject: template.subject,
       content: template.content,
-      category: template.category
+      category: template.category,
+      type: template.type
     });
     setIsEditing(false);
     setShowPreview(true);
@@ -405,7 +420,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     
     try {
       // Vérifier si le service mail est configuré
-      if (!mailService.isConfigured()) {
+      if (!(await mailService.isConfigured())) {
         setMessage({ 
           type: 'error', 
           text: 'Le service mail n\'est pas configuré. Veuillez configurer le serveur mail dans les paramètres d\'administration.' 
@@ -427,7 +442,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       };
       
       // Traiter le template avec les données de test
-      const processedTemplate = emailTemplateService.processTemplate(selectedTemplate.id, testData);
+      const processedTemplate = await emailTemplateService.processTemplate(selectedTemplate.id, testData);
       
       if (!processedTemplate) {
         setMessage({ type: 'error', text: 'Erreur lors du traitement du template' });
@@ -482,7 +497,6 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
             name: e.target.files?.[0].name.replace(/\.[^/.]+$/, "") || prev.name,
             subject: subject || prev.subject
           }));
-          setEditorKey(Date.now()); // Force editor to re-render with new content
           
           setMessage({ type: 'success', text: 'Fichier HTML chargé avec succès' });
         }
@@ -503,9 +517,9 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
         name: template.name,
         subject: template.subject,
         content: template.content,
-        category: template.category
+        category: template.category,
+        type: template.type || 'html'
       });
-      setEditorKey(Date.now()); // Force editor to re-render with new content
       setMessage({ type: 'success', text: `Template "${template.name}" importé avec succès` });
     }
   };
@@ -1001,7 +1015,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
                           </div>
                           <button
                             onClick={handleSendTestEmail}
-                            disabled={sendingTest || !mailService.isConfigured()}
+                            disabled={sendingTest || !isMailConfigured}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
                           >
                             {sendingTest ? (
@@ -1012,7 +1026,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
                             <span>Envoyer un test</span>
                           </button>
                         </div>
-                        {!mailService.isConfigured() && (
+                        {!isMailConfigured && (
                           <div className="mt-2 text-sm text-red-600">
                             Le service mail n'est pas configuré. Veuillez configurer le serveur mail dans les paramètres d'administration.
                           </div>

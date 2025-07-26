@@ -8,10 +8,8 @@ import {
   Eye, 
   EyeOff,
   Loader2,
-  Key,
   Server,
-  Lock,
-  Unlock
+  Lock
 } from 'lucide-react';
 import { mailService, MailConfig } from '../../lib/mailService';
 
@@ -34,35 +32,25 @@ const VaultMailConfig: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [vaultConnected, setVaultConnected] = useState(false);
-  const [useVault, setUseVault] = useState(false); // Forcer l'utilisation du stockage local
 
   useEffect(() => {
     loadConfiguration();
-    checkVaultConnection();
   }, []);
-
-  const checkVaultConnection = async () => {
-    // Forcer l'utilisation du stockage local
-    setVaultConnected(false);
-    setUseVault(false);
-    console.log('Mode stockage local forcé - configuration email sera sauvegardée localement');
-  };
 
   const loadConfiguration = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Charger directement depuis localStorage (stockage local)
-      const loadedConfig = mailService.getConfig();
+      // Charger depuis Supabase
+      const loadedConfig = await mailService.getConfig();
 
       if (loadedConfig) {
         setConfig(loadedConfig);
       }
     } catch (err) {
       console.error('Erreur lors du chargement:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement de la configuration');
     } finally {
       setLoading(false);
     }
@@ -85,9 +73,9 @@ const VaultMailConfig: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Sauvegarder uniquement en local (localStorage)
-      mailService.saveConfig(config);
-      setSuccess('✅ Configuration email sauvegardée localement avec succès');
+      // Sauvegarder dans Supabase
+      await mailService.saveConfig(config);
+      setSuccess('✅ Configuration email sauvegardée avec succès');
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde');
@@ -102,8 +90,8 @@ const VaultMailConfig: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Sauvegarder temporairement la config pour le test (en local uniquement)
-      mailService.saveConfig(config);
+      // Sauvegarder temporairement la config pour le test
+      await mailService.saveConfig(config);
 
       const result = await mailService.verifyConnection();
       
@@ -172,7 +160,7 @@ const VaultMailConfig: React.FC = () => {
         </div>
       </div>
 
-      {/* Header avec statut du vault */}
+      {/* Header avec statut */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center space-x-4">
@@ -180,9 +168,9 @@ const VaultMailConfig: React.FC = () => {
               <Mail className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Configuration Mail Sécurisée</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Configuration Email</h1>
               <p className="text-gray-600 mt-1">
-                Configurez votre serveur SMTP pour l'envoi d'emails
+                Configurez votre serveur SMTP avec stockage sécurisé dans Supabase
               </p>
             </div>
           </div>
@@ -191,7 +179,7 @@ const VaultMailConfig: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-green-100 text-green-800 border border-green-200">
               <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">Stockage Local</span>
+              <span className="font-medium">Supabase Sécurisé</span>
             </div>
           </div>
         </div>
@@ -214,57 +202,6 @@ const VaultMailConfig: React.FC = () => {
           <p className="text-green-800 font-medium">{success}</p>
         </div>
       )}
-
-      {/* Options de stockage */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Key className="h-5 w-5 mr-2" />
-          Mode de stockage
-        </h3>
-        
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="radio"
-                checked={useVault && vaultConnected}
-                onChange={() => setUseVault(true)}
-                disabled={!vaultConnected}
-                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              <div className="flex items-center space-x-2">
-                <Lock className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-gray-900">Vault sécurisé</span>
-                <span className="text-sm text-gray-500">(Recommandé - Chiffrement des mots de passe)</span>
-              </div>
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="radio"
-                checked={!useVault}
-                onChange={() => setUseVault(false)}
-                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              <div className="flex items-center space-x-2">
-                <Unlock className="h-4 w-4 text-yellow-600" />
-                <span className="font-medium text-gray-900">Stockage local</span>
-                <span className="text-sm text-gray-500">(Non chiffré - Pour tests uniquement)</span>
-              </div>
-            </label>
-          </div>
-          
-          {!vaultConnected && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-yellow-800 text-sm">
-                ⚠️ Le vault n'est pas disponible. La configuration sera stockée localement sans chiffrement.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Formulaire de configuration */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -362,9 +299,7 @@ const VaultMailConfig: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Mot de passe *
-              {useVault && vaultConnected && (
-                <span className="ml-2 text-xs text-green-600">(Sera chiffré dans le vault)</span>
-              )}
+              <span className="ml-2 text-xs text-green-600">(Chiffré dans Supabase)</span>
             </label>
             <div className="relative">
               <input
@@ -463,7 +398,7 @@ const VaultMailConfig: React.FC = () => {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Sauvegarder{useVault && vaultConnected ? ' dans le vault' : ' localement'}
+            Sauvegarder dans Supabase
           </button>
         </div>
       </div>

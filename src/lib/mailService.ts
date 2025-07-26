@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { localEmailService } from './localEmailService';
-import { vaultService, MailServerConfig } from './vaultService';
+import { emailConfigurationService, EmailConfiguration } from './emailConfigurationService';
 
 export interface MailConfig {
   host: string;
@@ -41,34 +41,67 @@ export interface VerifyResult {
 }
 
 class MailService {
-  private readonly STORAGE_KEY = 'mail_config';
-
-  isConfigured(): boolean {
-    const config = this.getConfig();
-    return !!config && config.enabled;
+  async isConfigured(): Promise<boolean> {
+    return await emailConfigurationService.isConfigured();
   }
 
-  getConfig(): MailConfig | null {
+  async getConfig(): Promise<MailConfig | null> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
+      const config = await emailConfigurationService.getConfiguration();
+      if (!config) return null;
+
+      return {
+        host: config.host,
+        port: config.port,
+        secure: config.secure,
+        username: config.username,
+        password: config.password,
+        from: config.from_email,
+        replyTo: config.reply_to,
+        enabled: config.enabled,
+        provider: config.provider
+      };
     } catch (error) {
       console.error('Erreur lors de la récupération de la configuration mail:', error);
       return null;
     }
   }
 
-  saveConfig(config: MailConfig): void {
+  async saveConfig(config: MailConfig): Promise<void> {
     try {
       // Valider la configuration avant de la sauvegarder
-      if (!config.host || !config.username || !config.from) {
-        throw new Error('Configuration incomplète: host, username et from sont requis');
+      const errors: string[] = [];
+      
+      if (!config.host || config.host.trim() === '') {
+        errors.push('Host du serveur SMTP est requis');
       }
       
-      // Tenter la sauvegarde
-      const configJson = JSON.stringify(config);
-      localStorage.setItem(this.STORAGE_KEY, configJson);
+      if (!config.username || config.username.trim() === '') {
+        errors.push('Nom d\'utilisateur est requis');
+      }
       
+      if (!config.from || config.from.trim() === '') {
+        errors.push('Adresse email d\'expéditeur est requise');
+      }
+      
+      if (errors.length > 0) {
+        throw new Error(`Configuration incomplète: ${errors.join(', ')}`);
+      }
+      
+      // Convertir au format EmailConfiguration
+      const emailConfig: Omit<EmailConfiguration, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
+        host: config.host.trim(),
+        port: config.port,
+        secure: config.secure,
+        username: config.username.trim(),
+        password: config.password,
+        from_email: config.from.trim(),
+        reply_to: config.replyTo?.trim(),
+        enabled: config.enabled,
+        provider: config.provider
+      };
+
+      await emailConfigurationService.saveConfiguration(emailConfig);
       console.log('✅ Configuration mail sauvegardée avec succès');
     } catch (error) {
       if (error instanceof Error) {
@@ -81,70 +114,8 @@ class MailService {
     }
   }
 
-  /**
-   * Sauvegarde la configuration mail dans le vault sécurisé
-   */
-  async saveConfigToVault(config: MailConfig): Promise<void> {
-    try {
-      const vaultConfig: MailServerConfig = {
-        host: config.host,
-        port: config.port,
-        secure: config.secure,
-        username: config.username,
-        password: config.password,
-        from: config.from,
-        replyTo: config.replyTo,
-        enabled: config.enabled,
-        provider: config.provider
-      };
-
-      await vaultService.storeMailConfig(vaultConfig);
-      console.log('✅ Configuration mail sauvegardée dans le vault');
-    } catch (error) {
-      console.error('❌ Erreur lors de la sauvegarde dans le vault:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Récupère la configuration mail depuis le vault sécurisé
-   */
-  async getConfigFromVault(): Promise<MailConfig | null> {
-    try {
-      const vaultConfig = await vaultService.getMailConfig();
-      if (!vaultConfig) return null;
-
-      return {
-        host: vaultConfig.host,
-        port: vaultConfig.port,
-        secure: vaultConfig.secure,
-        username: vaultConfig.username,
-        password: vaultConfig.password,
-        from: vaultConfig.from,
-        replyTo: vaultConfig.replyTo,
-        enabled: vaultConfig.enabled,
-        provider: vaultConfig.provider
-      };
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération depuis le vault:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Teste la connectivité du vault
-   */
-  async testVaultConnection(): Promise<boolean> {
-    try {
-      return await vaultService.testVaultConnection();
-    } catch (error) {
-      console.error('Vault inaccessible:', error);
-      return false;
-    }
-  }
-
   async verifyConnection(): Promise<VerifyResult> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
     if (!config) {
       return {
         success: false,
@@ -201,7 +172,7 @@ class MailService {
 
   async sendEmail(options: EmailOptions): Promise<EmailResult> {
     try {
-      const config = this.getConfig();
+      const config = await this.getConfig();
       if (!config) {
         return {
           success: false,

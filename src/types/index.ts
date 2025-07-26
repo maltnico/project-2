@@ -96,3 +96,19 @@ export interface Alert {
   createdAt: Date;
   actionUrl?: string;
 }
+
+export interface EmailConfiguration {
+  id?: string;
+  user_id?: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  password: string;
+  from_email: string;
+  reply_to?: string;
+  enabled: boolean;
+  provider?: string;
+  created_at?: string;
+  updated_at?: string;
+}

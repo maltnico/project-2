@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Save, 
@@ -42,6 +42,40 @@ const TenantForm: React.FC<TenantFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Mettre à jour le formulaire quand le locataire change
+  useEffect(() => {
+    if (tenant) {
+      setFormData({
+        firstName: tenant.firstName || '',
+        lastName: tenant.lastName || '',
+        email: tenant.email || '',
+        phone: tenant.phone || '',
+        propertyId: tenant.propertyId || '',
+        leaseStart: tenant.leaseStart ? tenant.leaseStart.toISOString().split('T')[0] : '',
+        leaseEnd: tenant.leaseEnd ? tenant.leaseEnd.toISOString().split('T')[0] : '',
+        rent: tenant.rent || 0,
+        deposit: tenant.deposit || 0,
+        status: tenant.status || 'active'
+      });
+    } else {
+      // Réinitialiser le formulaire pour un nouveau locataire
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        propertyId: '',
+        leaseStart: '',
+        leaseEnd: '',
+        rent: 0,
+        deposit: 0,
+        status: 'active'
+      });
+    }
+    // Réinitialiser les erreurs
+    setErrors({});
+  }, [tenant]);
 
   const tenantStatuses = [
     { value: 'active', label: 'Actif' },

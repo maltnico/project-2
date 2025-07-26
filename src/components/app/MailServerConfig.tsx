@@ -3,7 +3,6 @@ import {
   Mail, 
   Save, 
   Play,
-  RefreshCw, 
   CheckCircle, 
   AlertTriangle, 
   Send, 
@@ -43,10 +42,18 @@ const MailServerConfig: React.FC = () => {
 
   // Charger la configuration depuis le service mail
   useEffect(() => {
-    const savedConfig = mailService.getConfig();
-    if (savedConfig) {
-      setConfig(savedConfig);
-    }
+    const loadConfig = async () => {
+      try {
+        const savedConfig = await mailService.getConfig();
+        if (savedConfig) {
+          setConfig(savedConfig);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de la configuration:', error);
+      }
+    };
+    
+    loadConfig();
     
     // Charger la file d'attente
     try {
@@ -104,7 +111,7 @@ const MailServerConfig: React.FC = () => {
     
     try {
       // Sauvegarder la configuration via le service mail
-      mailService.saveConfig(config);
+      await mailService.saveConfig(config);
       
       setMessage({
         type: 'success',
@@ -118,52 +125,6 @@ const MailServerConfig: React.FC = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDiagnoseLocalStorage = () => {
-    try {
-      // Test d'écriture localStorage
-      const testKey = 'mail_config_test';
-      const testValue = JSON.stringify({ test: 'value', timestamp: Date.now() });
-      
-      localStorage.setItem(testKey, testValue);
-      const retrieved = localStorage.getItem(testKey);
-      localStorage.removeItem(testKey);
-      
-      if (retrieved === testValue) {
-        setMessage({
-          type: 'success',
-          text: '✅ localStorage fonctionne correctement'
-        });
-        
-        // Afficher la configuration actuelle
-        const currentConfig = localStorage.getItem('mail_config');
-        console.log('Configuration actuelle dans localStorage:', currentConfig);
-        
-        if (currentConfig) {
-          try {
-            const parsed = JSON.parse(currentConfig);
-            console.log('Configuration parsée:', parsed);
-          } catch (e) {
-            console.error('Erreur parsing configuration:', e);
-          }
-        } else {
-          console.log('Aucune configuration trouvée dans localStorage');
-        }
-        
-      } else {
-        setMessage({
-          type: 'error',
-          text: '❌ Problème avec localStorage'
-        });
-      }
-    } catch (error) {
-      console.error('Erreur diagnostic localStorage:', error);
-      setMessage({
-        type: 'error',
-        text: `❌ Erreur localStorage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
-      });
     }
   };
 
@@ -209,7 +170,7 @@ const MailServerConfig: React.FC = () => {
     
     try {
       // Sauvegarder d'abord la configuration actuelle
-      mailService.saveConfig(config);
+      await mailService.saveConfig(config);
       
       // Vérifier la connexion au serveur SMTP
       const verifyResult = await mailService.verifyConnection();
@@ -676,16 +637,6 @@ const MailServerConfig: React.FC = () => {
             <Save className="h-5 w-5" />
           )}
           <span>Enregistrer la configuration</span>
-        </button>
-        
-        {/* Bouton de diagnostic localStorage */}
-        <button
-          type="button"
-          onClick={handleDiagnoseLocalStorage}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
-        >
-          <CheckCircle className="h-4 w-4" />
-          <span>Diagnostic localStorage</span>
         </button>
       </div>
     </div>
