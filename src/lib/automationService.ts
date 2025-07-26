@@ -317,6 +317,7 @@ class AutomationService {
 
       // Préparer les pièces jointes si un template de document est configuré
       const attachments = [];
+      let generatedDocumentId: string | null = null; // Garder une référence au document généré
       
       // Détermine l'ID du template de document à utiliser
       let documentTemplateId = automation.documentTemplateId;
@@ -423,6 +424,7 @@ class AutomationService {
             // Stocker le document mis à jour
             console.log('Sauvegarde du document généré:', updatedDocument.name);
             await documentStorage.saveDocument(updatedDocument);
+            generatedDocumentId = updatedDocument.id; // Sauvegarder l'ID du document généré
             console.log(`Document généré et stocké avec succès: ${updatedDocument.id}`);
             
             // Générer le PDF pour l'email
@@ -525,19 +527,43 @@ class AutomationService {
       };
 
       // Essayer d'envoyer l'email via le service mail
+      let emailSent = false;
       try {
         // Vérifier si le service mail est configuré
         const isConfigured = await mailService.isConfigured();
         if (isConfigured) {
           await mailService.sendEmail(emailOptions);
+          emailSent = true;
         } else {
           // Sinon, utiliser le service local
           await localEmailService.sendEmail(emailOptions);
+          emailSent = true;
         }
       } catch (emailError) {
         console.warn('Erreur lors de l\'envoi de l\'email, utilisation du service local:', emailError);
-        // En cas d'erreur, utiliser le service local comme fallback
-        await localEmailService.sendEmail(emailOptions);
+        try {
+          // En cas d'erreur, utiliser le service local comme fallback
+          await localEmailService.sendEmail(emailOptions);
+          emailSent = true;
+        } catch (fallbackError) {
+          console.error('Échec de l\'envoi d\'email même avec le service local:', fallbackError);
+          emailSent = false;
+        }
+      }
+
+      // Si un document a été généré et l'email envoyé avec succès, mettre à jour le statut
+      if (emailSent && generatedDocumentId) {
+        try {
+          console.log(`Tentative de mise à jour du statut du document ${generatedDocumentId} vers "sent"`);
+          await documentStorage.updateDocumentStatus(generatedDocumentId, 'sent');
+          console.log(`✅ Statut du document ${generatedDocumentId} mis à jour avec succès à "sent"`);
+        } catch (statusError) {
+          console.error('❌ Erreur lors de la mise à jour du statut du document:', statusError);
+        }
+      } else if (emailSent && !generatedDocumentId) {
+        console.warn('⚠️ Email envoyé mais aucun document généré à mettre à jour');
+      } else if (!emailSent && generatedDocumentId) {
+        console.warn('⚠️ Document généré mais email non envoyé, statut non mis à jour');
       }
 
       // Mettre à jour la date de dernière exécution

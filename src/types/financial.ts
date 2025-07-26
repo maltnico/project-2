@@ -18,6 +18,7 @@ export interface FinancialFlow {
   attachments?: string[];
   tags?: string[];
   notes?: string;
+  metadata?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 }

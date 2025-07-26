@@ -40,6 +40,13 @@ const DocumentGenerator = () => {
 
   useEffect(() => {
     loadDocuments();
+    
+    // Rafraîchir les documents toutes les 30 secondes pour capturer les changements automatiques
+    const interval = setInterval(() => {
+      loadDocuments();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadDocuments = async () => {
@@ -544,6 +551,11 @@ const DocumentGenerator = () => {
       await documentStorage.updateDocumentStatus(document.id, 'sent');
       await loadDocuments();
       
+      // Déclencher un rafraîchissement supplémentaire après un court délai pour s'assurer que la mise à jour est visible
+      setTimeout(() => {
+        loadDocuments();
+      }, 1000);
+      
     } catch (error) {
       console.error('Erreur lors de l\'envoi:', error);
       alert('Erreur lors de l\'ouverture du client email');
@@ -615,6 +627,17 @@ const DocumentGenerator = () => {
                   </div>
                   <div className="p-2 bg-gray-100 rounded-lg">
                     <Edit className="h-5 w-5 text-gray-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Documents envoyés</p>
+                    <p className="text-2xl font-bold text-green-600">{documentStats.sent}</p>
+                  </div>
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Send className="h-5 w-5 text-green-600" />
                   </div>
                 </div>
               </div>

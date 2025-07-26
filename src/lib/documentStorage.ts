@@ -647,8 +647,12 @@ class DocumentStorage {
   // Mettre à jour le statut d'un document
   async updateDocumentStatus(id: string, status: GeneratedDocument['status']): Promise<GeneratedDocument> {
     try {
-      // Mettre à jour d'abord en base de données
-      await this.updateDocumentStatusInDatabase(id, status);
+      // Essayer de mettre à jour d'abord en base de données (si Supabase est configuré)
+      try {
+        await this.updateDocumentStatusInDatabase(id, status);
+      } catch (dbError) {
+        console.warn('Erreur lors de la mise à jour en base, continuant avec localStorage:', dbError);
+      }
       
       // Get the document first
       const document = await this.getDocument(id);
@@ -665,7 +669,7 @@ class DocumentStorage {
         document.signedAt = new Date();
       }
       
-      // Save the updated document
+      // Save the updated document (cela utilisera automatiquement le fallback localStorage si nécessaire)
       await this.saveDocument(document);
       
       return document;
