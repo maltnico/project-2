@@ -3,12 +3,14 @@ import { bankingService } from '../lib/bankingService';
 import type { 
   BankConnection, 
   BankInstitution, 
+  BankingConfiguration as BankingConfigType, 
   SyncResult 
 } from '../types/banking';
 
 export function useBanking() {
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [institutions, setInstitutions] = useState<BankInstitution[]>([]);
+  const [config, setConfig] = useState<BankingConfigType | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,23 +25,53 @@ export function useBanking() {
       setLoading(true);
       setError(null);
 
-      // S'assurer que le service est initialisé
-      if (!bankingService.isConfigured()) {
-        await bankingService.initialize();
+      const currentConfig = bankingService.getConfiguration();
+      setConfig(currentConfig);
+
+      if (bankingService.isConfigured()) {
+        const [connectionsData, institutionsData] = await Promise.all([
+          bankingService.getBankConnections(),
+          bankingService.getInstitutions('FR')
+        ]);
+
+        setConnections(connectionsData);
+        setInstitutions(institutionsData);
       }
-
-      const [connectionsData, institutionsData] = await Promise.all([
-        bankingService.getBankConnections(),
-        bankingService.getInstitutions('FR')
-      ]);
-
-      setConnections(connectionsData);
-      setInstitutions(institutionsData);
     } catch (err) {
       console.error('Erreur chargement données bancaires:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Configuration
+  const updateConfiguration = async (newConfig: Partial<BankingConfigType>) => {
+    try {
+      setError(null);
+      
+      // Merge with current config to ensure all required fields are present
+      const currentConfig = bankingService.getConfiguration();
+      const fullConfig = {
+        goCardlessAccessToken: newConfig.goCardlessAccessToken || currentConfig?.goCardlessAccessToken || '',
+        environment: newConfig.environment || currentConfig?.environment || 'sandbox',
+        defaultCountry: newConfig.defaultCountry || currentConfig?.defaultCountry || 'FR',
+        autoSync: newConfig.autoSync ?? currentConfig?.autoSync ?? true,
+        syncFrequency: newConfig.syncFrequency || currentConfig?.syncFrequency || 'daily',
+        categorizeTransactions: newConfig.categorizeTransactions ?? currentConfig?.categorizeTransactions ?? true,
+        ...newConfig
+      };
+      
+      await bankingService.updateConfiguration(fullConfig);
+      setConfig(bankingService.getConfiguration());
+      
+      // Recharger les données si la configuration devient valide
+      if (bankingService.isConfigured()) {
+        await loadData();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+      throw err;
     }
   };
 
@@ -115,12 +147,14 @@ export function useBanking() {
     // Données
     connections,
     institutions,
+    config,
     loading,
     syncing,
     error,
 
     // Actions
     loadData,
+    updateConfiguration,
     createBankConnection,
     completeBankConnection,
     disconnectBank,

@@ -1,4 +1,4 @@
-// Supabase supprimé, stockage local uniquement
+import { supabase } from './supabase';
 import { GeneratedDocument, DocumentTemplate } from '../types/documents';
 import { documentTemplates } from './documentTemplates';
 import { activityService } from './activityService';

@@ -50,19 +50,23 @@ export interface BankConnection {
   userId: string;
   institutionId: string;
   institutionName: string;
-  status: 'connected' | 'error' | 'expired' | 'disconnected' | 'created' | 'active';
+  status: 'connected' | 'error' | 'expired' | 'disconnected';
   accounts: BankAccount[];
   lastSync?: Date;
   expiresAt?: Date;
   accessToken?: string;
   refreshToken?: string;
   createdAt: Date;
-  updatedAt?: Date;
-  // Propriétés pour GoCardless
-  requisitionId?: string;
-  agreementId?: string;
-  isActive?: boolean;
-  metadata?: Record<string, any>;
+  updatedAt: Date;
+}
+
+export interface BankingConfiguration {
+  goCardlessAccessToken: string;
+  environment: 'sandbox' | 'production';
+  defaultCountry: string;
+  autoSync: boolean;
+  syncFrequency: 'daily' | 'weekly' | 'manual';
+  categorizeTransactions: boolean;
 }
 
 export interface TransactionCategory {
